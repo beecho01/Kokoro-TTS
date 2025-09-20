@@ -1,0 +1,81 @@
+# Kokoro-TTS
+
+[![hacs][hacs-badge]][hacs-link]
+[![license][license-badge]][license-link]
+
+A [Home Assistant](https://www.home-assistant.io/) custom integration for connecting to [Kokoro FastAPI](https://github.com/remsky/Kokoro-FastAPI), enabling high-quality local Text-to-Speech.  
+Easily send TTS audio to your speakers or media players directly from Home Assistant.
+
+---
+
+## ✨ Features
+
+- 🔊 Convert text to speech using Kokoro FastAPI  
+- ⚡ Low-latency responses for near real-time playback  
+- 🎙️ Voice selection with per-call overrides  
+- 🔧 Configurable server URL and parameters  
+- 🏠 Works with any Home Assistant `media_player` entity  
+
+---
+
+## 📦 Installation
+
+### HACS (recommended)
+
+1. Go to **HACS → Integrations → Custom repositories**.  
+2. Add this repository: `https://github.com/beecho01/Kokoro-TTS` with category **Integration**.
+3. 3. Search for **Kokoro-TTS** in HACS and install.  
+4. Restart Home Assistant.
+
+### Manual
+
+1. Download the latest release from [Releases](../../releases).  
+2. Copy the folder `custom_components/kokoro_tts` into your Home Assistant `custom_components` directory.  
+3. Restart Home Assistant.
+
+---
+
+## ⚙️ Configuration
+
+Add the following to your `configuration.yaml`:
+
+```yaml
+tts:
+- platform: kokoro_tts
+ server_url: "http://your-kokoro-server:8000"
+ voice: "default_voice"
+ # api_key: "not-needed"  # optional if your server requires it
+ # additional_options:
+ #   speed: 1.0
+ #   format: "mp3"
+```
+
+---
+
+## ▶️ Usage
+
+Send a message to any supported media player:
+
+```yaml
+service: tts.kokoro_tts_say
+data:
+  entity_id: media_player.living_room_speaker
+  message: "Testing Kokoro TTS in Home Assistant"
+  voice: "alt_voice"   # optional override
+```
+
+---
+
+## 🛠 Troubleshooting
+- First word is cut off
+Add a short delay before playback, or adjust server settings.
+- No sound
+Check server_url and make sure Kokoro FastAPI is running.
+- Wrong voice
+Verify the voice exists on your Kokoro server.
+
+---
+
+## 🙏 Credits
+
+Kokoro FastAPI backend: @remsky
