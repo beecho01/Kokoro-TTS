@@ -1,6 +1,6 @@
 # custom_components/kokoro_tts/tts.py
 from __future__ import annotations
-from typing import Any, Tuple
+from typing import Any
 import logging
 import voluptuous as vol
 import aiohttp
@@ -10,8 +10,8 @@ import json
 
 from homeassistant.components.tts import (
     PLATFORM_SCHEMA,
-    Provider,
 )
+from homeassistant.components.tts.entity import TextToSpeechEntity, TtsAudioType
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import config_validation as cv
 
@@ -58,52 +58,82 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 
 # -------- Entry points for HA --------
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up TTS platform via YAML configuration."""
-    _LOGGER.debug("async_setup_platform called with config: %s", config)
-    provider = await async_get_engine(hass, config, discovery_info)
-    async_add_entities([provider])
-
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up TTS platform via config entry."""
-    _LOGGER.debug("async_setup_entry called with entry data: %s", config_entry.data)
-    provider = await async_get_engine(hass, config_entry.data)
-    async_add_entities([provider])
+    try:
+        _LOGGER.info("Setting up Kokoro TTS entity from config entry")
+        _LOGGER.debug("Config entry data: %s", config_entry.data)
+        
+        config_data = config_entry.data
+        name = config_data.get(CONF_NAME, DEFAULT_NAME)
+        base_url = config_data[CONF_BASE_URL].rstrip("/")
+        api_key = config_data.get(CONF_API_KEY, "x") or "x"
+        model = config_data.get(CONF_MODEL, DEFAULT_MODEL)
+        voice = config_data.get(CONF_VOICE)
+        speed = float(config_data.get(CONF_SPEED, DEFAULT_SPEED))
+        fmt = (config_data.get(CONF_FORMAT, DEFAULT_FORMAT) or DEFAULT_FORMAT).lower()
+        sample_rate = int(config_data.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
+        pad_ms = int(config_data.get(CONF_PAD_MS, DEFAULT_PAD_MS))
 
-async def async_get_engine(hass, config, discovery_info=None):
-    """
-    Called by HA when the platform is set up via YAML (tts:).
-    For UI (config entry) setups, HA will forward the entry data here too,
-    so we support both paths by reading from `config` dict.
-    """
-    _LOGGER.debug("async_get_engine called with config: %s", config)
-    
-    name = config.get(CONF_NAME, DEFAULT_NAME)
-    base_url = config[CONF_BASE_URL].rstrip("/")
-    api_key = config.get(CONF_API_KEY, "x") or "x"
-    model = config.get(CONF_MODEL, DEFAULT_MODEL)
-    voice = config.get(CONF_VOICE)
-    speed = float(config.get(CONF_SPEED, DEFAULT_SPEED))
-    fmt = (config.get(CONF_FORMAT, DEFAULT_FORMAT) or DEFAULT_FORMAT).lower()
-    sample_rate = int(config.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
-    pad_ms = int(config.get(CONF_PAD_MS, DEFAULT_PAD_MS))
+        _LOGGER.info("Creating KokoroTTSEntity: name=%s, base_url=%s, model=%s, voice=%s", 
+                    name, base_url, model, voice)
+        
+        entity = KokoroTTSEntity(
+            name=name,
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+            voice=voice,
+            speed=speed,
+            fmt=fmt,
+            sample_rate=sample_rate,
+            pad_ms=pad_ms,
+        )
+        
+        async_add_entities([entity])
+        _LOGGER.info("KokoroTTSEntity added successfully")
+        
+    except Exception as e:
+        _LOGGER.error("Failed to setup Kokoro TTS entity: %s", e, exc_info=True)
+        raise
 
-    _LOGGER.debug("Creating KokoroProvider with name: %s, base_url: %s", name, base_url)
-    
-    return KokoroProvider(
-        name=name,
-        base_url=base_url,
-        api_key=api_key,
-        model=model,
-        voice=voice,
-        speed=speed,
-        fmt=fmt,
-        sample_rate=sample_rate,
-        pad_ms=pad_ms,
-    )
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    """Set up TTS platform via YAML configuration."""
+    try:
+        _LOGGER.info("Setting up Kokoro TTS entity from YAML config")
+        _LOGGER.debug("YAML config: %s", config)
+        
+        name = config.get(CONF_NAME, DEFAULT_NAME)
+        base_url = config[CONF_BASE_URL].rstrip("/")
+        api_key = config.get(CONF_API_KEY, "x") or "x"
+        model = config.get(CONF_MODEL, DEFAULT_MODEL)
+        voice = config.get(CONF_VOICE)
+        speed = float(config.get(CONF_SPEED, DEFAULT_SPEED))
+        fmt = (config.get(CONF_FORMAT, DEFAULT_FORMAT) or DEFAULT_FORMAT).lower()
+        sample_rate = int(config.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
+        pad_ms = int(config.get(CONF_PAD_MS, DEFAULT_PAD_MS))
 
-class KokoroProvider(Provider):
-    """Kokoro TTS Provider."""
+        entity = KokoroTTSEntity(
+            name=name,
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+            voice=voice,
+            speed=speed,
+            fmt=fmt,
+            sample_rate=sample_rate,
+            pad_ms=pad_ms,
+        )
+        
+        async_add_entities([entity])
+        _LOGGER.info("KokoroTTSEntity added successfully from YAML")
+        
+    except Exception as e:
+        _LOGGER.error("Failed to setup Kokoro TTS entity from YAML: %s", e, exc_info=True)
+        raise
+
+class KokoroTTSEntity(TextToSpeechEntity):
+    """Kokoro TTS Entity."""
 
     def __init__(
         self,
@@ -117,37 +147,30 @@ class KokoroProvider(Provider):
         sample_rate: int,
         pad_ms: int,
     ) -> None:
-        """Initialize the provider."""
-        self._name = name
-        self._base_url = base_url
-        self._api_key = api_key
-        self._model = model
-        self._voice = voice
-        self._speed = speed
-        self._fmt = fmt
-        self._sample_rate = sample_rate
-        self._pad_ms = pad_ms
-        _LOGGER.debug("KokoroProvider initialized: name=%s, base_url=%s", name, base_url)
-
-    @property
-    def default_language(self) -> str:
-        """Return the default language."""
-        return "en"
-
-    @property
-    def supported_languages(self) -> list[str]:
-        """Return list of supported languages."""
-        return ["en"]
-
-    @property
-    def supported_options(self) -> list[str]:
-        """Return list of supported options."""
-        return SUPPORTED_OPTIONS
-
-    @property
-    def name(self) -> str:
-        """Return name of the TTS provider."""
-        return self._name
+        """Initialize the TTS entity."""
+        try:
+            super().__init__()
+            self._attr_name = name
+            self._attr_unique_id = f"kokoro_tts_{name}"
+            self._base_url = base_url
+            self._api_key = api_key
+            self._model = model
+            self._voice = voice
+            self._speed = speed
+            self._fmt = fmt
+            self._sample_rate = sample_rate
+            self._pad_ms = pad_ms
+            
+            # Required TTS entity attributes
+            self._attr_default_language = "en"
+            self._attr_supported_languages = ["en"]
+            self._attr_supported_options = SUPPORTED_OPTIONS
+            
+            _LOGGER.info("KokoroTTSEntity initialized successfully: name=%s, base_url=%s", name, base_url)
+            
+        except Exception as e:
+            _LOGGER.error("Failed to initialize KokoroTTSEntity: %s", e, exc_info=True)
+            raise
 
     def _handle_http_error(self, status: int, text: str) -> str:
         """Map HTTP status codes to user-friendly error messages."""
@@ -173,112 +196,128 @@ class KokoroProvider(Provider):
 
     async def async_get_tts_audio(
         self, message: str, language: str, options: dict[str, Any] | None = None
-    ) -> Tuple[str, bytes]:
+    ) -> TtsAudioType:
         """Get TTS audio from Kokoro API."""
-        _LOGGER.debug("Getting TTS audio for message: %s, language: %s, options: %s", message, language, options)
-        
-        if not message.strip():
-            raise ValueError("Message cannot be empty")
-
-        # Merge provider defaults with per-call options
-        opts = options or {}
-        voice = opts.get("voice", self._voice)
-        speed = float(opts.get("speed", self._speed))
-        fmt = (opts.get("format", self._fmt) or self._fmt).lower()
-        sample_rate = int(opts.get("sample_rate", self._sample_rate))
-        pad_ms = int(opts.get("pad_ms", self._pad_ms))
-        volume_multiplier = float(opts.get("volume_multiplier", 1.0))
-
-        _LOGGER.debug("Final options: voice=%s, speed=%s, format=%s, sample_rate=%s, pad_ms=%s, volume_multiplier=%s", 
-                     voice, speed, fmt, sample_rate, pad_ms, volume_multiplier)
-
-        # Build API payload
-        payload = {
-            "model": self._model,
-            "input": message,
-            "response_format": fmt,
-            "download_format": fmt,
-            "speed": speed,
-        }
-        
-        if voice:
-            payload["voice"] = voice
-        if volume_multiplier != 1.0:
-            payload["volume_multiplier"] = volume_multiplier
-
-        headers = {"Content-Type": "application/json"}
-        if self._api_key and self._api_key != "x":
-            headers["Authorization"] = f"Bearer {self._api_key}"
-
-        url = f"{self._base_url}/v1/audio/speech"
-        _LOGGER.debug("Making request to: %s with payload: %s", url, payload)
-
-        timeout = aiohttp.ClientTimeout(total=30)
         try:
+            _LOGGER.error("=== TTS REQUEST START ===")
+            _LOGGER.error("Message: '%s'", message[:100])
+            _LOGGER.error("Language: %s", language)
+            _LOGGER.error("Options: %s", options)
+            _LOGGER.error("Base URL: %s", self._base_url)
+            _LOGGER.error("Model: %s", self._model)
+            _LOGGER.error("Voice: %s", self._voice)
+            
+            if not message.strip():
+                raise ValueError("Message cannot be empty")
+
+            # Merge provider defaults with per-call options
+            opts = options or {}
+            voice = opts.get("voice", self._voice)
+            speed = float(opts.get("speed", self._speed))
+            fmt = (opts.get("format", self._fmt) or self._fmt).lower()
+            sample_rate = int(opts.get("sample_rate", self._sample_rate))
+            pad_ms = int(opts.get("pad_ms", self._pad_ms))
+            volume_multiplier = float(opts.get("volume_multiplier", 1.0))
+
+            _LOGGER.error("Final TTS config: voice=%s, speed=%s, format=%s, sample_rate=%s", 
+                         voice, speed, fmt, sample_rate)
+
+            # Build API payload
+            payload = {
+                "model": self._model,
+                "input": message,
+                "response_format": fmt,
+                "download_format": fmt,
+                "speed": speed,
+            }
+            
+            if voice:
+                payload["voice"] = voice
+            if volume_multiplier != 1.0:
+                payload["volume_multiplier"] = volume_multiplier
+
+            headers = {"Content-Type": "application/json"}
+            if self._api_key and self._api_key != "x":
+                headers["Authorization"] = f"Bearer {self._api_key}"
+
+            url = f"{self._base_url}/v1/audio/speech"
+            _LOGGER.error("Making request to URL: %s", url)
+            _LOGGER.error("Payload: %s", payload)
+            _LOGGER.error("Headers: %s", {k: "***" if k == "Authorization" else v for k, v in headers.items()})
+
+            # Use same timeout as your successful curl test
+            timeout = aiohttp.ClientTimeout(total=60, connect=10)
+            
             async with aiohttp.ClientSession(timeout=timeout) as session:
+                _LOGGER.error("Starting HTTP POST request...")
                 async with session.post(url, json=payload, headers=headers) as response:
-                    _LOGGER.debug("Response status: %s", response.status)
+                    _LOGGER.error("Response received - Status: %s", response.status)
+                    _LOGGER.error("Response headers: %s", dict(response.headers))
                     
                     if response.status != 200:
                         error_text = await response.text()
+                        _LOGGER.error("API error response: %s", error_text)
                         error_msg = self._handle_http_error(response.status, error_text)
                         raise RuntimeError(error_msg)
 
                     content_type = response.headers.get("content-type", "").lower()
-                    _LOGGER.debug("Response content-type: %s", content_type)
+                    _LOGGER.error("Content-Type: %s", content_type)
                     
                     if "application/json" in content_type:
-                        # Handle JSON response (might contain base64 audio or download URL)
+                        # Handle JSON response
                         data = await response.json()
-                        _LOGGER.debug("JSON response received")
+                        _LOGGER.error("JSON response received: %s", str(data)[:200])
                         
                         if isinstance(data, dict):
-                            # Check for base64 audio
                             if "audio" in data:
-                                _LOGGER.debug("Found base64 audio in response")
+                                _LOGGER.error("Found base64 audio field")
                                 try:
                                     audio_bytes = base64.b64decode(data["audio"])
+                                    _LOGGER.error("Successfully decoded base64 audio: %d bytes", len(audio_bytes))
                                 except Exception as e:
+                                    _LOGGER.error("Base64 decode failed: %s", e)
                                     raise RuntimeError(f"Failed to decode base64 audio: {e}")
-                            # Check for download URL
                             elif "download_url" in data:
                                 download_url = data["download_url"]
-                                _LOGGER.debug("Found download URL: %s", download_url)
-                                async with session.get(download_url) as dl_resp:
+                                _LOGGER.error("Found download URL: %s", download_url)
+                                async with session.get(download_url, timeout=aiohttp.ClientTimeout(total=30)) as dl_resp:
                                     if dl_resp.status != 200:
                                         dl_error = await dl_resp.text()
-                                        raise RuntimeError(f"Failed to download audio from {download_url}: {dl_error}")
+                                        _LOGGER.error("Download failed: %s", dl_error)
+                                        raise RuntimeError(f"Failed to download audio: {dl_error}")
                                     audio_bytes = await dl_resp.read()
+                                    _LOGGER.error("Downloaded audio: %d bytes", len(audio_bytes))
                             else:
-                                raise RuntimeError(f"JSON response missing 'audio' or 'download_url' fields: {data}")
-                        elif isinstance(data, str):
-                            raise RuntimeError(f"Unexpected JSON string response: {data}")
+                                _LOGGER.error("JSON missing audio fields. Keys: %s", list(data.keys()))
+                                raise RuntimeError(f"JSON response missing audio fields: {list(data.keys())}")
                         else:
+                            _LOGGER.error("Unexpected JSON type: %s", type(data))
                             raise RuntimeError(f"Unexpected JSON response type: {type(data)}")
                     else:
                         # Handle binary audio response
-                        _LOGGER.debug("Binary audio response received")
+                        _LOGGER.error("Binary response received")
                         audio_bytes = await response.read()
+                        _LOGGER.error("Binary audio received: %d bytes", len(audio_bytes))
 
-                    _LOGGER.debug("Audio received: %d bytes", len(audio_bytes))
+                    if not audio_bytes:
+                        _LOGGER.error("Empty audio data received")
+                        raise RuntimeError("Received empty audio data")
 
                     # Apply padding if requested and format is WAV
                     if pad_ms > 0 and fmt == "wav":
-                        _LOGGER.debug("Applying %d ms padding to WAV audio", pad_ms)
-                        # Simple padding implementation - you might want to enhance this
+                        _LOGGER.error("Applying %d ms padding", pad_ms)
                         silence_samples = int((sample_rate * pad_ms) / 1000)
-                        silence_bytes = b'\x00' * (silence_samples * 2)  # 16-bit samples
-                        # This is a simplified approach - proper WAV padding requires header manipulation
+                        silence_bytes = b'\x00' * (silence_samples * 2)
                         audio_bytes = silence_bytes + audio_bytes + silence_bytes
 
+                    _LOGGER.error("=== TTS SUCCESS: %d bytes, format: %s ===", len(audio_bytes), fmt)
                     return fmt, audio_bytes
 
-        except aiohttp.ClientError as e:
-            _LOGGER.error("Network error connecting to Kokoro TTS: %s", e)
-            raise RuntimeError(f"Network error: {e}")
-        except asyncio.TimeoutError:
-            _LOGGER.error("Timeout connecting to Kokoro TTS")
-            raise RuntimeError("Request timeout - Kokoro service too slow")
         except Exception as e:
-            _LOGGER.error("Unexpected error in async_get_tts_audio: %s", e)
-            raise RuntimeError(f"Unexpected error: {e}")
+            _LOGGER.error("=== TTS FAILED ===")
+            _LOGGER.error("Exception type: %s", type(e).__name__)
+            _LOGGER.error("Exception message: %s", str(e))
+            _LOGGER.error("Full traceback:", exc_info=True)
+            _LOGGER.error("=== END TTS FAILED ===")
+            # Re-raise the exception so HA can handle it
+            raise
