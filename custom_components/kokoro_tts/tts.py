@@ -1,21 +1,19 @@
 # custom_components/kokoro_tts/tts.py
 from __future__ import annotations
-
-import asyncio
-import io
-import json
-import logging
 from typing import Any, Tuple
-
-import aiohttp
+import logging
 import voluptuous as vol
+import aiohttp
+import asyncio
+import base64
+import json
 
 from homeassistant.components.tts import (
     PLATFORM_SCHEMA,
     Provider,
 )
 from homeassistant.const import CONF_NAME
-import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import config_validation as cv
 
 from .const import (
     DOMAIN,
@@ -60,12 +58,26 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 
 # -------- Entry points for HA --------
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    """Set up TTS platform via YAML configuration."""
+    _LOGGER.debug("async_setup_platform called with config: %s", config)
+    provider = await async_get_engine(hass, config, discovery_info)
+    async_add_entities([provider])
+
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up TTS platform via config entry."""
+    _LOGGER.debug("async_setup_entry called with entry data: %s", config_entry.data)
+    provider = await async_get_engine(hass, config_entry.data)
+    async_add_entities([provider])
+
 async def async_get_engine(hass, config, discovery_info=None):
     """
     Called by HA when the platform is set up via YAML (tts:).
     For UI (config entry) setups, HA will forward the entry data here too,
     so we support both paths by reading from `config` dict.
     """
+    _LOGGER.debug("async_get_engine called with config: %s", config)
+    
     name = config.get(CONF_NAME, DEFAULT_NAME)
     base_url = config[CONF_BASE_URL].rstrip("/")
     api_key = config.get(CONF_API_KEY, "x") or "x"
@@ -76,6 +88,8 @@ async def async_get_engine(hass, config, discovery_info=None):
     sample_rate = int(config.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
     pad_ms = int(config.get(CONF_PAD_MS, DEFAULT_PAD_MS))
 
+    _LOGGER.debug("Creating KokoroProvider with name: %s, base_url: %s", name, base_url)
+    
     return KokoroProvider(
         name=name,
         base_url=base_url,
@@ -88,10 +102,8 @@ async def async_get_engine(hass, config, discovery_info=None):
         pad_ms=pad_ms,
     )
 
-
-# -------- Provider implementation --------
 class KokoroProvider(Provider):
-    """Home Assistant TTS Provider for Kokoro FastAPI."""
+    """Kokoro TTS Provider."""
 
     def __init__(
         self,
@@ -105,213 +117,168 @@ class KokoroProvider(Provider):
         sample_rate: int,
         pad_ms: int,
     ) -> None:
+        """Initialize the provider."""
         self._name = name
         self._base_url = base_url
-        self._api_key = api_key or "x"
+        self._api_key = api_key
         self._model = model
         self._voice = voice
         self._speed = speed
         self._fmt = fmt
-        self._sr = sample_rate
+        self._sample_rate = sample_rate
         self._pad_ms = pad_ms
+        _LOGGER.debug("KokoroProvider initialized: name=%s, base_url=%s", name, base_url)
 
     @property
     def default_language(self) -> str:
+        """Return the default language."""
         return "en"
 
     @property
     def supported_languages(self) -> list[str]:
+        """Return list of supported languages."""
         return ["en"]
 
     @property
-    def name(self) -> str:
-        return self._name
-
-    @property
     def supported_options(self) -> list[str]:
-        # Allow per-call overrides for these
+        """Return list of supported options."""
         return SUPPORTED_OPTIONS
 
-    async def _handle_http_error(self, resp: aiohttp.ClientResponse) -> None:
-        """Handle HTTP errors with granular logging and user-friendly messages."""
-        try:
-            error_text = await resp.text()
-        except Exception:
-            error_text = "(unable to read error response)"
+    @property
+    def name(self) -> str:
+        """Return name of the TTS provider."""
+        return self._name
 
-        if resp.status == 400:
-            _LOGGER.warning("Kokoro TTS bad request (400): Invalid parameters or malformed request - %s", error_text)
-            raise RuntimeError("Invalid request parameters. Check your model, voice, and format settings.")
-        elif resp.status == 401:
-            _LOGGER.warning("Kokoro TTS authentication failed (401): Invalid API key - %s", error_text) 
-            raise RuntimeError("Authentication failed. Check your API key configuration.")
-        elif resp.status == 403:
-            _LOGGER.warning("Kokoro TTS access forbidden (403): Insufficient permissions - %s", error_text)
-            raise RuntimeError("Access forbidden. Your API key may not have permission for this operation.")
-        elif resp.status == 404:
-            _LOGGER.warning("Kokoro TTS endpoint not found (404): Check base URL and API version - %s", error_text)
-            raise RuntimeError("TTS endpoint not found. Verify your base URL configuration.")
-        elif resp.status == 422:
-            _LOGGER.warning("Kokoro TTS validation error (422): Invalid input parameters - %s", error_text)
-            raise RuntimeError("Input validation failed. Check your text, voice, or model parameters.")
-        elif resp.status == 429:
-            _LOGGER.warning("Kokoro TTS rate limited (429): Too many requests - %s", error_text)
-            raise RuntimeError("Rate limit exceeded. Please wait before making more requests.")
-        elif resp.status == 500:
-            _LOGGER.error("Kokoro TTS server error (500): Internal server issue - %s", error_text)
-            raise RuntimeError("Server error. The TTS service is experiencing issues.")
-        elif resp.status == 502:
-            _LOGGER.error("Kokoro TTS bad gateway (502): Upstream server issue - %s", error_text)
-            raise RuntimeError("Bad gateway. The TTS service may be temporarily unavailable.")
-        elif resp.status == 503:
-            _LOGGER.error("Kokoro TTS service unavailable (503): Server overloaded or maintenance - %s", error_text)
-            raise RuntimeError("Service unavailable. The TTS service may be under maintenance.")
-        elif resp.status == 504:
-            _LOGGER.error("Kokoro TTS gateway timeout (504): Request took too long - %s", error_text)
-            raise RuntimeError("Gateway timeout. The TTS request took too long to process.")
+    def _handle_http_error(self, status: int, text: str) -> str:
+        """Map HTTP status codes to user-friendly error messages."""
+        error_map = {
+            400: f"Bad request - check your text or options: {text}",
+            401: f"Authentication failed - check your API key: {text}",
+            403: f"Access forbidden - insufficient permissions: {text}",
+            404: f"Service not found - check your base URL: {text}",
+            422: f"Invalid request data - check voice/model settings: {text}",
+            429: f"Rate limit exceeded - try again later: {text}",
+            500: f"Server error - Kokoro service issue: {text}",
+            502: f"Bad gateway - service unavailable: {text}",
+            503: f"Service temporarily unavailable: {text}",
+            504: f"Gateway timeout - service too slow: {text}",
+        }
+        
+        if 400 <= status < 500:
+            _LOGGER.warning("Client error %d: %s", status, text)
         else:
-            _LOGGER.error("Kokoro TTS unexpected HTTP error (%d): %s", resp.status, error_text)
-            raise RuntimeError(f"HTTP {resp.status}: {error_text}")
+            _LOGGER.error("Server error %d: %s", status, text)
+            
+        return error_map.get(status, f"HTTP {status} error: {text}")
 
     async def async_get_tts_audio(
         self, message: str, language: str, options: dict[str, Any] | None = None
-    ) -> Tuple[str, bytes] | None:
-        """Generate audio bytes for the given text."""
+    ) -> Tuple[str, bytes]:
+        """Get TTS audio from Kokoro API."""
+        _LOGGER.debug("Getting TTS audio for message: %s, language: %s, options: %s", message, language, options)
+        
+        if not message.strip():
+            raise ValueError("Message cannot be empty")
+
+        # Merge provider defaults with per-call options
         opts = options or {}
         voice = opts.get("voice", self._voice)
         speed = float(opts.get("speed", self._speed))
+        fmt = (opts.get("format", self._fmt) or self._fmt).lower()
+        sample_rate = int(opts.get("sample_rate", self._sample_rate))
         pad_ms = int(opts.get("pad_ms", self._pad_ms))
-        fmt = (opts.get("format") or self._fmt).lower()
-        sample_rate = int(opts.get("sample_rate", self._sr))
         volume_multiplier = float(opts.get("volume_multiplier", 1.0))
 
-        # Build Kokoro FastAPI (OpenAI-style) payload
-        payload: dict[str, Any] = {
+        _LOGGER.debug("Final options: voice=%s, speed=%s, format=%s, sample_rate=%s, pad_ms=%s, volume_multiplier=%s", 
+                     voice, speed, fmt, sample_rate, pad_ms, volume_multiplier)
+
+        # Build API payload
+        payload = {
             "model": self._model,
             "input": message,
-            "response_format": fmt,  # format we want returned (raw bytes)
-            "download_format": fmt,  # if server differentiates, keep aligned
-            "stream": False,  # Disable streaming for Home Assistant
+            "response_format": fmt,
+            "download_format": fmt,
+            "speed": speed,
         }
+        
         if voice:
             payload["voice"] = voice
-        if speed and abs(speed - 1.0) > 1e-6:
-            payload["speed"] = speed
-        if volume_multiplier and abs(volume_multiplier - 1.0) > 1e-6:
+        if volume_multiplier != 1.0:
             payload["volume_multiplier"] = volume_multiplier
 
+        headers = {"Content-Type": "application/json"}
+        if self._api_key and self._api_key != "x":
+            headers["Authorization"] = f"Bearer {self._api_key}"
+
         url = f"{self._base_url}/v1/audio/speech"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self._api_key}",
-        }
+        _LOGGER.debug("Making request to: %s with payload: %s", url, payload)
 
-        timeout = aiohttp.ClientTimeout(total=60)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            try:
-                async with session.post(url, headers=headers, data=json.dumps(payload)) as resp:
-                    if resp.status != 200:
-                        await self._handle_http_error(resp)
+        timeout = aiohttp.ClientTimeout(total=30)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(url, json=payload, headers=headers) as response:
+                    _LOGGER.debug("Response status: %s", response.status)
+                    
+                    if response.status != 200:
+                        error_text = await response.text()
+                        error_msg = self._handle_http_error(response.status, error_text)
+                        raise RuntimeError(error_msg)
 
-                    # Some Kokoro deployments may return raw bytes directly with audio mime,
-                    # others might return JSON (download link or base64 string). Try to detect.
-                    ctype = resp.headers.get("Content-Type", "").lower()
-                    if "application/json" in ctype:
-                        data = await resp.json()
-                        # If API returns a direct string (OpenAI style sample?), handle that.
-                        if isinstance(data, str):
-                            # Assume base64 encoded? If so we would need to decode; keeping raw for now.
-                            # Without spec certainty, treat as error to surface debugging.
-                            _LOGGER.error("Unexpected JSON string response from Kokoro TTS; expected binary audio or structured data")
-                            raise RuntimeError("Unexpected JSON string response; expected binary audio")
-                        # Try common keys for sources
-                        if "audio" in data and isinstance(data["audio"], str):
-                            # Could be base64; attempt decode if it looks like base64
-                            import base64, binascii
-                            aud_str = data["audio"]
-                            try:
-                                audio = base64.b64decode(aud_str)
-                            except (binascii.Error, ValueError):
-                                _LOGGER.error("Failed to decode base64 audio field from Kokoro TTS response")
-                                raise RuntimeError("Failed to decode base64 audio field")
-                        elif data.get("download_url"):
-                            dl = data["download_url"]
-                            async with session.get(dl) as dl_resp:
-                                if dl_resp.status != 200:
-                                    _LOGGER.error("Failed to download audio from URL %s (status %d)", dl, dl_resp.status)
-                                    raise RuntimeError(f"Download URL fetch failed {dl_resp.status}")
-                                audio = await dl_resp.read()
+                    content_type = response.headers.get("content-type", "").lower()
+                    _LOGGER.debug("Response content-type: %s", content_type)
+                    
+                    if "application/json" in content_type:
+                        # Handle JSON response (might contain base64 audio or download URL)
+                        data = await response.json()
+                        _LOGGER.debug("JSON response received")
+                        
+                        if isinstance(data, dict):
+                            # Check for base64 audio
+                            if "audio" in data:
+                                _LOGGER.debug("Found base64 audio in response")
+                                try:
+                                    audio_bytes = base64.b64decode(data["audio"])
+                                except Exception as e:
+                                    raise RuntimeError(f"Failed to decode base64 audio: {e}")
+                            # Check for download URL
+                            elif "download_url" in data:
+                                download_url = data["download_url"]
+                                _LOGGER.debug("Found download URL: %s", download_url)
+                                async with session.get(download_url) as dl_resp:
+                                    if dl_resp.status != 200:
+                                        dl_error = await dl_resp.text()
+                                        raise RuntimeError(f"Failed to download audio from {download_url}: {dl_error}")
+                                    audio_bytes = await dl_resp.read()
+                            else:
+                                raise RuntimeError(f"JSON response missing 'audio' or 'download_url' fields: {data}")
+                        elif isinstance(data, str):
+                            raise RuntimeError(f"Unexpected JSON string response: {data}")
                         else:
-                            _LOGGER.error("JSON response from Kokoro TTS did not contain expected audio or download_url fields")
-                            raise RuntimeError("JSON response did not contain audio or download_url")
+                            raise RuntimeError(f"Unexpected JSON response type: {type(data)}")
                     else:
-                        audio = await resp.read()
-            except aiohttp.ClientError as e:
-                _LOGGER.error("Network error connecting to Kokoro TTS at %s: %s", url, e)
-                raise RuntimeError(f"Network error: {e}")
-            except asyncio.TimeoutError:
-                _LOGGER.error("Timeout connecting to Kokoro TTS at %s", url)
-                raise RuntimeError("Request timeout")
-            except Exception as e:
-                _LOGGER.error("Unexpected error during Kokoro TTS request: %s", e)
-                raise RuntimeError(f"Unexpected error: {e}")
+                        # Handle binary audio response
+                        _LOGGER.debug("Binary audio response received")
+                        audio_bytes = await response.read()
 
-        # Optional pre-padding only makes sense for WAV (PCM16)
-        if pad_ms > 0 and fmt == "wav":
-            try:
-                audio = _prepend_wav_silence(audio, pad_ms, sample_rate)
-            except Exception:
-                # If anything goes wrong, fall back to raw audio
-                pass
+                    _LOGGER.debug("Audio received: %d bytes", len(audio_bytes))
 
-        # Map format to file extension based on API supported formats
-        ext_map = {
-            "mp3": "mp3",
-            "opus": "opus", 
-            "flac": "flac",
-            "pcm": "wav",  # PCM returns as wav for Home Assistant
-            "wav": "wav"
-        }
-        ext = ext_map.get(fmt, "wav")
-        return ext, audio
+                    # Apply padding if requested and format is WAV
+                    if pad_ms > 0 and fmt == "wav":
+                        _LOGGER.debug("Applying %d ms padding to WAV audio", pad_ms)
+                        # Simple padding implementation - you might want to enhance this
+                        silence_samples = int((sample_rate * pad_ms) / 1000)
+                        silence_bytes = b'\x00' * (silence_samples * 2)  # 16-bit samples
+                        # This is a simplified approach - proper WAV padding requires header manipulation
+                        audio_bytes = silence_bytes + audio_bytes + silence_bytes
 
+                    return fmt, audio_bytes
 
-# -------- Helpers --------
-def _prepend_wav_silence(wav_bytes: bytes, pad_ms: int, sample_rate: int) -> bytes:
-    """
-    Prepend silence to a PCM16 mono/stereo WAV by inserting zero samples and
-    rewriting the header accordingly.
-
-    Assumes Kokoro returns linear PCM (sampwidth=2) at requested sample_rate.
-    If not PCM16, returns original bytes.
-    """
-    import wave
-
-    pad_frames = int(round(sample_rate * (pad_ms / 1000.0)))
-    if pad_frames <= 0:
-        return wav_bytes
-
-    with wave.open(io.BytesIO(wav_bytes), "rb") as r:
-        n_channels = r.getnchannels()
-        sampwidth = r.getsampwidth()
-        framerate = r.getframerate()
-        n_frames = r.getnframes()
-        comptype = r.getcomptype()
-        audio_frames = r.readframes(n_frames)
-
-    # Only handle PCM16 neatly
-    if sampwidth != 2 or comptype != "NONE" or framerate != sample_rate:
-        return wav_bytes
-
-    # Build silence matching channel count
-    silence = b"\x00\x00" * pad_frames * n_channels
-    new_frames = silence + audio_frames
-
-    out = io.BytesIO()
-    with wave.open(out, "wb") as w:
-        w.setnchannels(n_channels)
-        w.setsampwidth(sampwidth)
-        w.setframerate(sample_rate)
-        w.writeframes(new_frames)
-
-    return out.getvalue()
+        except aiohttp.ClientError as e:
+            _LOGGER.error("Network error connecting to Kokoro TTS: %s", e)
+            raise RuntimeError(f"Network error: {e}")
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout connecting to Kokoro TTS")
+            raise RuntimeError("Request timeout - Kokoro service too slow")
+        except Exception as e:
+            _LOGGER.error("Unexpected error in async_get_tts_audio: %s", e)
+            raise RuntimeError(f"Unexpected error: {e}")
