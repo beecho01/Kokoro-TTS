@@ -1,0 +1,17 @@
+{
+    "domain": "kokoro_tts",
+    "name": "Kokoro TTS",
+    "codeowners": [
+        "@beecho01"
+    ],
+    "config_flow": true,
+    "dependencies": [
+        "http",
+        "frontend"
+    ],
+    "documentation": "https://github.com/beecho01/kokoro-tts",
+    "iot_class": "local_push",
+    "issue_tracker": "https://github.com/beecho01/kokoro-tts/issues",
+    "requirements": [],
+    "version": "2025.09.21"
+}
