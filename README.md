@@ -40,7 +40,7 @@
 
 1. Go to **HACS → Integrations → Custom repositories**.  
 2. Add this repository: `https://github.com/beecho01/Kokoro-TTS` with category **Integration**.
-3. 3. Search for **Kokoro-TTS** in HACS and install.  
+3. Search for **Kokoro-TTS** in HACS and install.  
 4. Restart Home Assistant.
 
 ### Manual
@@ -53,32 +53,13 @@
 
 ## ⚙️ Configuration
 
-Add the following to your `configuration.yaml`:
-
-```yaml
-tts:
-- platform: kokoro_tts
- server_url: "http://your-kokoro-server:8000"
- voice: "default_voice"
- # api_key: "not-needed"  # optional if your server requires it
- # additional_options:
- #   speed: 1.0
- #   format: "mp3"
-```
+Work-in-progress
 
 ---
 
 ## ▶️ Usage
 
-Send a message to any supported media player:
-
-```yaml
-service: tts.kokoro_tts_say
-data:
-  entity_id: media_player.living_room_speaker
-  message: "Testing Kokoro TTS in Home Assistant"
-  voice: "alt_voice"   # optional override
-```
+Work-in-progress
 
 ---
 
@@ -94,5 +75,4 @@ Verify the voice exists on your Kokoro server.
 
 ## 🙏 Credits
 
-Kokoro FastAPI backend: @remsky
-
+Kokoro FastAPI backend: [@remsky](https://github.com/remsky)
