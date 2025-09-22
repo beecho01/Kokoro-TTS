@@ -20,12 +20,13 @@ from .const import (
     CONF_BASE_URL,
     CONF_API_KEY,
     CONF_MODEL,
-    CONF_VOICE,
+    CONF_PERSONA,
     CONF_SPEED,
     CONF_FORMAT,
     CONF_SAMPLE_RATE,
     DEFAULT_API_KEY,
     DEFAULT_MODEL,
+    DEFAULT_PERSONA,
     DEFAULT_SPEED,
     DEFAULT_FORMAT,
     DEFAULT_SAMPLE_RATE,
@@ -36,7 +37,7 @@ DEFAULT_NAME = "kokoro"
 _LOGGER = logging.getLogger(__name__)
 
 # Options you can override per-call via tts.speak -> data.options
-SUPPORTED_OPTIONS = ["voice", "speed", "format", "sample_rate", "volume_multiplier"]
+SUPPORTED_OPTIONS = ["persona", "speed", "format", "sample_rate", "volume_multiplier"]
 
 
 # -------- YAML schema (optional; UI uses config entries) --------
@@ -45,7 +46,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_BASE_URL): cv.url,
         vol.Optional(CONF_API_KEY, default="x"): cv.string,
         vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): cv.string,
-        vol.Optional(CONF_VOICE, default=None): vol.Any(None, cv.string),
+        vol.Optional(CONF_PERSONA, default=DEFAULT_PERSONA): vol.Any(None, cv.string),
         vol.Optional(CONF_SPEED, default=DEFAULT_SPEED): vol.All(float, vol.Range(min=0.25, max=4.0)),  # Updated to match API range
         vol.Optional(CONF_FORMAT, default=DEFAULT_FORMAT): vol.In(["wav", "mp3", "opus", "flac", "pcm"]),  # Updated formats
         vol.Optional(CONF_SAMPLE_RATE, default=DEFAULT_SAMPLE_RATE): vol.All(int, vol.In([22050, 24000, 44100])),
@@ -66,20 +67,20 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         base_url = config_data[CONF_BASE_URL].rstrip("/")
         api_key = config_data.get(CONF_API_KEY, "x") or "x"
         model = config_data.get(CONF_MODEL, DEFAULT_MODEL)
-        voice = config_data.get(CONF_VOICE)
+        persona = config_data.get(CONF_PERSONA)
         speed = float(config_data.get(CONF_SPEED, DEFAULT_SPEED))
         fmt = (config_data.get(CONF_FORMAT, DEFAULT_FORMAT) or DEFAULT_FORMAT).lower()
         sample_rate = int(config_data.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
 
-        _LOGGER.info("Creating KokoroTTSEntity: name=%s, base_url=%s, model=%s, voice=%s", 
-                    name, base_url, model, voice)
+        _LOGGER.info("Creating KokoroTTSEntity: name=%s, base_url=%s, model=%s, persona=%s", 
+                    name, base_url, model, persona)
         
         entity = KokoroTTSEntity(
             name=name,
             base_url=base_url,
             api_key=api_key,
             model=model,
-            voice=voice,
+            persona=persona,
             speed=speed,
             fmt=fmt,
             sample_rate=sample_rate,
@@ -102,7 +103,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         base_url = config[CONF_BASE_URL].rstrip("/")
         api_key = config.get(CONF_API_KEY, "x") or "x"
         model = config.get(CONF_MODEL, DEFAULT_MODEL)
-        voice = config.get(CONF_VOICE)
+        persona = config.get(CONF_PERSONA)
         speed = float(config.get(CONF_SPEED, DEFAULT_SPEED))
         fmt = (config.get(CONF_FORMAT, DEFAULT_FORMAT) or DEFAULT_FORMAT).lower()
         sample_rate = int(config.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
@@ -112,7 +113,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             base_url=base_url,
             api_key=api_key,
             model=model,
-            voice=voice,
+            persona=persona,
             speed=speed,
             fmt=fmt,
             sample_rate=sample_rate,
@@ -134,7 +135,7 @@ class KokoroTTSEntity(TextToSpeechEntity):
         base_url: str,
         api_key: str,
         model: str,
-        voice: str | None,
+        persona: str | None,
         speed: float,
         fmt: str,
         sample_rate: int,
@@ -147,7 +148,7 @@ class KokoroTTSEntity(TextToSpeechEntity):
             self._base_url = base_url
             self._api_key = api_key
             self._model = model
-            self._voice = voice
+            self._persona = persona
             self._speed = speed
             self._fmt = fmt
             self._sample_rate = sample_rate
@@ -196,21 +197,22 @@ class KokoroTTSEntity(TextToSpeechEntity):
             _LOGGER.error("Options: %s", options)
             _LOGGER.error("Base URL: %s", self._base_url)
             _LOGGER.error("Model: %s", self._model)
-            _LOGGER.error("Voice: %s", self._voice)
+            _LOGGER.error("Persona: %s", self._persona)
             
             if not message.strip():
                 raise ValueError("Message cannot be empty")
 
             # Merge provider defaults with per-call options
             opts = options or {}
-            voice = opts.get("voice", self._voice)
+            # Support both "persona" and "voice" for backward compatibility
+            persona = opts.get("persona", opts.get("voice", self._persona))
             speed = float(opts.get("speed", self._speed))
             fmt = (opts.get("format", self._fmt) or self._fmt).lower()
             sample_rate = int(opts.get("sample_rate", self._sample_rate))
             volume_multiplier = float(opts.get("volume_multiplier", 1.0))
 
-            _LOGGER.error("Final TTS config: voice=%s, speed=%s, format=%s, sample_rate=%s", 
-                         voice, speed, fmt, sample_rate)
+            _LOGGER.error("Final TTS config: persona=%s, speed=%s, format=%s, sample_rate=%s", 
+                         persona, speed, fmt, sample_rate)
 
             # Build API payload
             payload = {
@@ -221,8 +223,8 @@ class KokoroTTSEntity(TextToSpeechEntity):
                 "speed": speed,
             }
             
-            if voice:
-                payload["voice"] = voice
+            if persona:
+                payload["voice"] = persona
             if volume_multiplier != 1.0:
                 payload["volume_multiplier"] = volume_multiplier
 
