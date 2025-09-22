@@ -386,6 +386,18 @@ async def _discover_models_and_personas(base_url: str, api_key: str) -> tuple[li
     except Exception as e:
         _LOGGER.error("Error in discovery session: %s", e)
     
+    # If no personas were discovered, use the static mappings as fallback
+    if not personas:
+        _LOGGER.debug("No personas discovered from API, using static PERSONA_MAPPINGS as fallback")
+        from .const import PERSONA_MAPPINGS
+        personas = list(PERSONA_MAPPINGS.keys())
+        _LOGGER.debug("Using static personas: %d personas from PERSONA_MAPPINGS", len(personas))
+    
+    # If no models were discovered, provide a default
+    if not models:
+        _LOGGER.debug("No models discovered from API, using default 'kokoro' model")
+        models = ["kokoro"]
+    
     _LOGGER.debug("Discovery complete: %d models, %d personas", len(models), len(personas))
     return models, personas
 
