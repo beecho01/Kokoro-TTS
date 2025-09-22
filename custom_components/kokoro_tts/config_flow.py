@@ -369,20 +369,29 @@ async def _discover_models_and_personas(base_url: str, api_key: str) -> tuple[li
             except Exception as e:
                 _LOGGER.debug("Failed to discover models from %s/v1/models: %s", base_url, e)
             
-            # Discover personas from /v1/audio/personas
+            # Discover personas from /v1/audio/voices
             try:
-                personas_url = f"{base_url}/v1/audio/personas"
+                personas_url = f"{base_url}/v1/audio/voices"
                 _LOGGER.debug("Fetching personas from: %s", personas_url)
                 async with session.get(personas_url, headers=headers) as resp:
                     _LOGGER.debug("Voices response status: %s", resp.status)
                     if resp.status == 200:
                         data = await resp.json()
                         _LOGGER.debug("Voices response data: %s", data)
-                        if isinstance(data, dict) and isinstance(data.get("personas"), list):
-                            personas = [str(persona) for persona in data["personas"] if isinstance(persona, str)]
-                            _LOGGER.debug("Extracted personas: %s", personas)
+                        # Check for different possible response formats
+                        if isinstance(data, dict):
+                            if isinstance(data.get("voices"), list):
+                                personas = [str(voice) for voice in data["voices"] if isinstance(voice, str)]
+                                _LOGGER.debug("Extracted personas from 'voices' field: %s", personas)
+                            elif isinstance(data.get("personas"), list):
+                                personas = [str(persona) for persona in data["personas"] if isinstance(persona, str)]
+                                _LOGGER.debug("Extracted personas from 'personas' field: %s", personas)
+                        elif isinstance(data, list):
+                            # Direct array of voices
+                            personas = [str(voice) for voice in data if isinstance(voice, str)]
+                            _LOGGER.debug("Extracted personas from direct array: %s", personas)
             except Exception as e:
-                _LOGGER.debug("Failed to discover personas from %s/v1/audio/personas: %s", base_url, e)
+                _LOGGER.debug("Failed to discover personas from %s/v1/audio/voices: %s", base_url, e)
     except Exception as e:
         _LOGGER.error("Error in discovery session: %s", e)
     
