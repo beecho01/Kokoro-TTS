@@ -24,13 +24,11 @@ from .const import (
     CONF_SPEED,
     CONF_FORMAT,
     CONF_SAMPLE_RATE,
-    CONF_PAD_MS,
     DEFAULT_API_KEY,
     DEFAULT_MODEL,
     DEFAULT_SPEED,
     DEFAULT_FORMAT,
     DEFAULT_SAMPLE_RATE,
-    DEFAULT_PAD_MS,
 )
 
 # -------- Defaults --------
@@ -38,7 +36,7 @@ DEFAULT_NAME = "kokoro"
 _LOGGER = logging.getLogger(__name__)
 
 # Options you can override per-call via tts.speak -> data.options
-SUPPORTED_OPTIONS = ["voice", "speed", "pad_ms", "format", "sample_rate", "volume_multiplier"]
+SUPPORTED_OPTIONS = ["voice", "speed", "format", "sample_rate", "volume_multiplier"]
 
 
 # -------- YAML schema (optional; UI uses config entries) --------
@@ -51,7 +49,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_SPEED, default=DEFAULT_SPEED): vol.All(float, vol.Range(min=0.25, max=4.0)),  # Updated to match API range
         vol.Optional(CONF_FORMAT, default=DEFAULT_FORMAT): vol.In(["wav", "mp3", "opus", "flac", "pcm"]),  # Updated formats
         vol.Optional(CONF_SAMPLE_RATE, default=DEFAULT_SAMPLE_RATE): vol.All(int, vol.In([22050, 24000, 44100])),
-        vol.Optional(CONF_PAD_MS, default=DEFAULT_PAD_MS): vol.All(int, vol.Range(min=0, max=2000)),
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     }
 )
@@ -73,7 +70,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         speed = float(config_data.get(CONF_SPEED, DEFAULT_SPEED))
         fmt = (config_data.get(CONF_FORMAT, DEFAULT_FORMAT) or DEFAULT_FORMAT).lower()
         sample_rate = int(config_data.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
-        pad_ms = int(config_data.get(CONF_PAD_MS, DEFAULT_PAD_MS))
 
         _LOGGER.info("Creating KokoroTTSEntity: name=%s, base_url=%s, model=%s, voice=%s", 
                     name, base_url, model, voice)
@@ -87,7 +83,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             speed=speed,
             fmt=fmt,
             sample_rate=sample_rate,
-            pad_ms=pad_ms,
         )
         
         async_add_entities([entity])
@@ -111,7 +106,6 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         speed = float(config.get(CONF_SPEED, DEFAULT_SPEED))
         fmt = (config.get(CONF_FORMAT, DEFAULT_FORMAT) or DEFAULT_FORMAT).lower()
         sample_rate = int(config.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
-        pad_ms = int(config.get(CONF_PAD_MS, DEFAULT_PAD_MS))
 
         entity = KokoroTTSEntity(
             name=name,
@@ -122,7 +116,6 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             speed=speed,
             fmt=fmt,
             sample_rate=sample_rate,
-            pad_ms=pad_ms,
         )
         
         async_add_entities([entity])
@@ -145,7 +138,6 @@ class KokoroTTSEntity(TextToSpeechEntity):
         speed: float,
         fmt: str,
         sample_rate: int,
-        pad_ms: int,
     ) -> None:
         """Initialize the TTS entity."""
         try:
@@ -159,7 +151,6 @@ class KokoroTTSEntity(TextToSpeechEntity):
             self._speed = speed
             self._fmt = fmt
             self._sample_rate = sample_rate
-            self._pad_ms = pad_ms
             
             # Required TTS entity attributes
             self._attr_default_language = "en"
@@ -216,7 +207,6 @@ class KokoroTTSEntity(TextToSpeechEntity):
             speed = float(opts.get("speed", self._speed))
             fmt = (opts.get("format", self._fmt) or self._fmt).lower()
             sample_rate = int(opts.get("sample_rate", self._sample_rate))
-            pad_ms = int(opts.get("pad_ms", self._pad_ms))
             volume_multiplier = float(opts.get("volume_multiplier", 1.0))
 
             _LOGGER.error("Final TTS config: voice=%s, speed=%s, format=%s, sample_rate=%s", 
@@ -302,13 +292,6 @@ class KokoroTTSEntity(TextToSpeechEntity):
                     if not audio_bytes:
                         _LOGGER.error("Empty audio data received")
                         raise RuntimeError("Received empty audio data")
-
-                    # Apply padding if requested and format is WAV
-                    if pad_ms > 0 and fmt == "wav":
-                        _LOGGER.error("Applying %d ms padding", pad_ms)
-                        silence_samples = int((sample_rate * pad_ms) / 1000)
-                        silence_bytes = b'\x00' * (silence_samples * 2)
-                        audio_bytes = silence_bytes + audio_bytes + silence_bytes
 
                     _LOGGER.error("=== TTS SUCCESS: %d bytes, format: %s ===", len(audio_bytes), fmt)
                     return fmt, audio_bytes

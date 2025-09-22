@@ -14,11 +14,11 @@
         "description": "Configure TTS settings. Models found: {models_found}. Voices found: {voices_found}.",
         "data": {
           "model": "Model",
+          "language": "Voice Language",
           "voice": "Voice",
           "speed": "Speech speed (0.25x - 4.0x)",
           "format": "Audio format",
-          "sample_rate": "Sample rate (Hz)",
-          "pad_ms": "Prepend silence (milliseconds)"
+          "sample_rate": "Sample rate (Hz)"
         }
       }
     },
@@ -37,11 +37,11 @@
         "description": "Adjust defaults. Models found: {models_found}. Voices found: {voices_found}. Use per-call overrides in tts.speak → options.",
         "data": {
           "model": "Model",
+          "language": "Voice Language",
           "voice": "Voice",
           "speed": "Speech speed (0.25x - 4.0x)",
           "format": "Audio format",
-          "sample_rate": "Sample rate (Hz)",
-          "pad_ms": "Prepend silence (milliseconds)"
+          "sample_rate": "Sample rate (Hz)"
         }
       }
     }

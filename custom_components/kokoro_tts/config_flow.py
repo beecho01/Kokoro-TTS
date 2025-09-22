@@ -20,16 +20,55 @@ from .const import (
     CONF_API_KEY,
     CONF_MODEL,
     CONF_VOICE,
+    CONF_LANGUAGE,
     CONF_SPEED,
     CONF_FORMAT,
     CONF_SAMPLE_RATE,
-    CONF_PAD_MS,
     DEFAULTS,
+    VOICE_MAPPINGS,
+    LANGUAGE_OPTIONS,
 )
 
 _LOGGER = logging.getLogger(__name__)
 _FORMAT_OPTIONS = ["wav", "mp3", "opus", "flac", "pcm"]
-_SAMPLE_RATE_OPTIONS = ["22050", "24000", "44100"]  # Changed to strings
+_SAMPLE_RATE_OPTIONS = ["22050", "24000", "44100"]
+
+def get_voice_display_name(technical_name: str) -> str:
+    """Convert technical voice name to user-friendly display name."""
+    if technical_name in VOICE_MAPPINGS:
+        language, gender, name = VOICE_MAPPINGS[technical_name]
+        return f"{name} ({language}, {gender})"
+    return technical_name  # Fallback to technical name if not mapped
+
+def get_technical_voice_name(display_name: str) -> str:
+    """Convert display name back to technical voice name.""" 
+    for tech_name, (language, gender, name) in VOICE_MAPPINGS.items():
+        expected_display = f"{name} ({language}, {gender})"
+        if display_name == expected_display:
+            return tech_name
+    return display_name  # Fallback if not found
+
+def filter_voices_by_language(voices: list[str], selected_language: str) -> list[str]:
+    """Filter voice list by selected language."""
+    if selected_language == "All Languages" or not selected_language:
+        return voices
+    
+    filtered = []
+    for voice in voices:
+        if voice in VOICE_MAPPINGS:
+            language, _, _ = VOICE_MAPPINGS[voice]
+            if language == selected_language:
+                filtered.append(voice)
+        elif selected_language == "All Languages":
+            # Include unmapped voices when "All Languages" is selected
+            filtered.append(voice)
+    
+    return filtered
+
+def get_voice_options_for_language(voices: list[str], selected_language: str) -> list[str]:
+    """Get user-friendly voice options for a specific language."""
+    filtered_voices = filter_voices_by_language(voices, selected_language)
+    return [get_voice_display_name(voice) for voice in sorted(filtered_voices)]
 
 @config_entries.HANDLERS.register(DOMAIN)
 class KokoroConfigFlow(config_entries.ConfigFlow):
@@ -132,6 +171,13 @@ class KokoroConfigFlow(config_entries.ConfigFlow):
                     except ValueError:
                         pass  # Keep as string if conversion fails
                 
+                # Convert voice display name back to technical name
+                if CONF_VOICE in user_input:
+                    display_voice = user_input[CONF_VOICE]
+                    technical_voice = get_technical_voice_name(display_voice)
+                    user_input[CONF_VOICE] = technical_voice
+                    _LOGGER.debug("Converted voice '%s' to technical name '%s'", display_voice, technical_voice)
+                
                 # Merge base info with details
                 data = {**self._base_info, **user_input}
                 _LOGGER.debug("Merged data: %s", data)
@@ -184,38 +230,6 @@ class KokoroConfigFlow(config_entries.ConfigFlow):
             _LOGGER.error("Exception in async_step_import: %s", e)
             _LOGGER.error("Traceback: %s", traceback.format_exc())
             return self.async_abort(reason="unknown_error")
-
-    async def async_get_engine(hass, config, discovery_info=None):
-        """
-        Called by HA when the platform is set up via YAML (tts:).
-        For UI (config entry) setups, HA will forward the entry data here too,
-        so we support both paths by reading from `config` dict.
-        """
-        _LOGGER.debug("async_get_engine called with config: %s", config)
-        
-        name = config.get(CONF_NAME, DEFAULT_NAME)
-        base_url = config[CONF_BASE_URL].rstrip("/")
-        api_key = config.get(CONF_API_KEY, "x") or "x"
-        model = config.get(CONF_MODEL, DEFAULT_MODEL)
-        voice = config.get(CONF_VOICE)
-        speed = float(config.get(CONF_SPEED, DEFAULT_SPEED))
-        fmt = (config.get(CONF_FORMAT, DEFAULT_FORMAT) or DEFAULT_FORMAT).lower()
-        sample_rate = int(config.get(CONF_SAMPLE_RATE, DEFAULT_SAMPLE_RATE))
-        pad_ms = int(config.get(CONF_PAD_MS, DEFAULT_PAD_MS))
-
-        _LOGGER.debug("Creating KokoroProvider with name: %s, base_url: %s", name, base_url)
-        
-        return KokoroProvider(
-            name=name,
-            base_url=base_url,
-            api_key=api_key,
-            model=model,
-            voice=voice,
-            speed=speed,
-            fmt=fmt,
-            sample_rate=sample_rate,
-            pad_ms=pad_ms,
-        )
 
 def _calc_unique_id(base_url: str) -> str:
     """Generate stable unique ID from base URL."""
@@ -312,12 +326,33 @@ def _details_schema(models: list[str], voices: list[str], user_input: dict | Non
             _LOGGER.debug("Using text input for model")
             schema[vol.Optional(CONF_MODEL, default=ui.get(CONF_MODEL, DEFAULTS[CONF_MODEL]))] = cv.string
         
-        # Voice selector (dropdown if discovered, text input otherwise)
+        # Language selector for voice filtering
+        selected_language = ui.get(CONF_LANGUAGE, DEFAULTS[CONF_LANGUAGE])
+        schema[vol.Optional(CONF_LANGUAGE, default=selected_language)] = selector.selector({
+            "select": {
+                "options": LANGUAGE_OPTIONS,
+                "mode": "dropdown",
+            }
+        })
+        
+        # Voice selector (filtered by language if voices discovered)
         if voices:
-            _LOGGER.debug("Using dropdown for voices: %s", voices[:5])  # Log first 5 to avoid spam
-            schema[vol.Optional(CONF_VOICE, default=ui.get(CONF_VOICE, DEFAULTS[CONF_VOICE]))] = selector.selector({
+            _LOGGER.debug("Using dropdown for voices: %d total voices", len(voices))
+            
+            # Get filtered voice options for the selected language
+            voice_options = get_voice_options_for_language(voices, selected_language)
+            
+            # Convert current voice value to display name if it exists
+            current_voice = ui.get(CONF_VOICE, DEFAULTS[CONF_VOICE])
+            current_voice_display = get_voice_display_name(current_voice)
+            
+            # If current voice is not in filtered options, add it
+            if current_voice_display not in voice_options and current_voice_display:
+                voice_options.append(current_voice_display)
+            
+            schema[vol.Optional(CONF_VOICE, default=current_voice_display)] = selector.selector({
                 "select": {
-                    "options": sorted(voices),
+                    "options": sorted(voice_options) if voice_options else [current_voice_display],
                     "mode": "dropdown",
                     "custom_value": True,
                 }
@@ -356,16 +391,6 @@ def _details_schema(models: list[str], voices: list[str], user_input: dict | Non
             }
         })
         
-        # Padding slider
-        schema[vol.Optional(CONF_PAD_MS, default=ui.get(CONF_PAD_MS, DEFAULTS[CONF_PAD_MS]))] = selector.selector({
-            "number": {
-                "min": 0,
-                "max": 2000,
-                "step": 50,
-                "mode": "slider",
-            }
-        })
-        
         result = vol.Schema(schema)
         _LOGGER.debug("Details schema created successfully")
         return result
@@ -392,12 +417,27 @@ class KokoroOptionsFlow(config_entries.OptionsFlow):
                         user_input[CONF_SAMPLE_RATE] = int(user_input[CONF_SAMPLE_RATE])
                     except ValueError:
                         pass  # Keep as string if conversion fails
+                
+                # Convert voice display name back to technical name
+                if CONF_VOICE in user_input:
+                    display_voice = user_input[CONF_VOICE]
+                    technical_voice = get_technical_voice_name(display_voice)
+                    user_input[CONF_VOICE] = technical_voice
+                    _LOGGER.debug("Options: Converted voice '%s' to technical name '%s'", display_voice, technical_voice)
+                
                 return self.async_create_entry(title="", data=user_input)
 
             # Start with current options or fall back to entry data
             data = {**self._entry.data, **(self._entry.options or {})}
             # Don't allow changing base_url in options
             base_url = data.pop(CONF_BASE_URL, None)
+            
+            # Convert stored technical voice name to display name for the form
+            if CONF_VOICE in data:
+                technical_voice = data[CONF_VOICE]
+                display_voice = get_voice_display_name(technical_voice)
+                data[CONF_VOICE] = display_voice
+                _LOGGER.debug("Options: Converted stored voice '%s' to display name '%s'", technical_voice, display_voice)
             
             # Try to discover models/voices for options
             models, voices = [], []
