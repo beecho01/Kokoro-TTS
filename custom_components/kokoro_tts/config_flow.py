@@ -12,8 +12,7 @@ import aiohttp
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv, selector
-from homeassistant.core import callback, HomeAssistant
-from homeassistant.components.websocket_api import websocket_command, require_admin, ActiveConnection
+from homeassistant.core import callback
 
 from .const import (
     DOMAIN,
@@ -78,6 +77,7 @@ def get_technical_persona_name(display_name: str) -> str:
 
 def filter_personas_by_language_and_sex(personas: list[str], selected_language: str, selected_sex: str) -> list[str]:
     """Filter persona list by selected language and sex."""
+    _LOGGER.debug("Filtering %d personas by language='%s', sex='%s'", len(personas), selected_language, selected_sex)
     filtered = []
     for persona in personas:
         if persona in PERSONA_MAPPINGS:
@@ -95,17 +95,28 @@ def filter_personas_by_language_and_sex(personas: list[str], selected_language: 
             
             if language_match and sex_match:
                 filtered.append(persona)
+                _LOGGER.debug("Included persona '%s' (%s, %s)", persona, language, sex)
+            else:
+                _LOGGER.debug("Filtered out persona '%s' (%s, %s) - lang_match=%s, sex_match=%s", 
+                             persona, language, sex, language_match, sex_match)
         elif (selected_language == "All Languages" or not selected_language) and \
              (selected_sex == "All" or not selected_sex):
             # Include unmapped personas when both filters are "All"
             filtered.append(persona)
+            _LOGGER.debug("Included unmapped persona '%s' (no filters active)", persona)
+        else:
+            _LOGGER.debug("Filtered out unmapped persona '%s' (filters active)", persona)
     
+    _LOGGER.debug("Filtering result: %d personas after filtering", len(filtered))
     return filtered
 
 def get_persona_options_for_language_and_sex(personas: list[str], selected_language: str, selected_sex: str) -> list[str]:
     """Get user-friendly persona options for specific language and sex."""
+    _LOGGER.debug("Getting persona options for language='%s', sex='%s'", selected_language, selected_sex)
     filtered_personas = filter_personas_by_language_and_sex(personas, selected_language, selected_sex)
     persona_options = [get_persona_display_name(persona, selected_language, selected_sex) for persona in sorted(filtered_personas)]
+    
+    _LOGGER.debug("Generated %d persona options: %s", len(persona_options), persona_options)
     
     # If no personas found, show a helpful message
     if not persona_options:
@@ -115,6 +126,7 @@ def get_persona_options_for_language_and_sex(personas: list[str], selected_langu
             persona_options = [f"No personas available for {selected_language}"]
         elif selected_sex != "All":
             persona_options = [f"No {selected_sex.lower()} personas available"]
+        _LOGGER.debug("No personas found, using fallback message: %s", persona_options)
     
     return persona_options
 
@@ -217,43 +229,51 @@ class KokoroConfigFlow(config_entries.ConfigFlow):
 
             if user_input is not None:
                 _LOGGER.debug("Processing details user input")
+                _LOGGER.debug("Current user_input keys: %s", list(user_input.keys()))
                 
                 # Check if this is a filter change (language or sex) - not final submission
-                # If user changed filters, we need to re-render the form with updated personas
-                if CONF_LANGUAGE in user_input or CONF_SEX in user_input:
+                # We detect filter changes by checking if ONLY filter fields have changed
+                # and no other required fields are being submitted
+                has_language_change = CONF_LANGUAGE in user_input
+                has_sex_change = CONF_SEX in user_input
+                has_persona_selection = (user_input.get(CONF_PERSONA) is not None and 
+                                       user_input.get(CONF_PERSONA) != "" and 
+                                       str(user_input.get(CONF_PERSONA)).strip() != "")
+                has_other_fields = any(key in user_input for key in [CONF_MODEL, CONF_SPEED, CONF_FORMAT, CONF_SAMPLE_RATE])
+                
+                _LOGGER.debug("Filter analysis: language_change=%s, sex_change=%s, persona_selected=%s, other_fields=%s", 
+                             has_language_change, has_sex_change, has_persona_selection, has_other_fields)
+                
+                # If user changed filters and hasn't made a final persona selection, re-render
+                if (has_language_change or has_sex_change) and not has_persona_selection:
                     selected_language = user_input.get(CONF_LANGUAGE, DEFAULTS[CONF_LANGUAGE])
                     selected_sex = user_input.get(CONF_SEX, DEFAULTS[CONF_SEX])
                     current_persona = user_input.get(CONF_PERSONA, DEFAULTS[CONF_PERSONA])
                     
-                    # Check if current persona is still valid for the selected filters
+                    _LOGGER.debug("Filter change detected: language='%s', sex='%s', current_persona='%s'", 
+                                 selected_language, selected_sex, current_persona)
+                    
+                    # Get filtered personas for the new filter settings
                     filtered_personas = filter_personas_by_language_and_sex(personas, selected_language, selected_sex)
-                    if current_persona and get_technical_persona_name(current_persona) not in filtered_personas:
-                        # Reset persona to None if current persona is invalid for new filters
-                        user_input[CONF_PERSONA] = None
+                    
+                    # Check if current persona is still valid for the selected filters
+                    # Convert display name to technical name for validation
+                    if current_persona:
+                        technical_persona = get_technical_persona_name(current_persona)
+                        if technical_persona not in filtered_personas:
+                            # Reset persona to None if current persona is invalid for new filters
+                            user_input[CONF_PERSONA] = None
+                            _LOGGER.debug("Reset persona because '%s' not in filtered personas: %s", technical_persona, filtered_personas)
                     elif not current_persona and filtered_personas:
                         # No persona was selected, leave it as None to force user choice
                         user_input[CONF_PERSONA] = None
                     
                     # Re-render form with updated persona options
-                    _LOGGER.debug("Filters changed to language=%s, sex=%s, re-rendering form", selected_language, selected_sex)
+                    _LOGGER.debug("Re-rendering form with filter changes")
                     schema = _details_schema(models, personas, user_input)
                     return self.async_show_form(
                         step_id="details",
                         data_schema=schema,
-                    )
-                
-                # Check if preview button was clicked
-                if "preview_button" in user_input:
-                    _LOGGER.debug("Preview button clicked, re-rendering form with preview capability")
-                    # Just re-render the form with the preview button enabled
-                    # The actual preview happens via WebSocket API in the frontend
-                    schema = _details_schema(models, personas, user_input)
-                    return self.async_show_form(
-                        step_id="details",
-                        data_schema=schema,
-                        description_placeholders={
-                            "preview_info": "Click the preview button to test the selected persona with your preview text."
-                        }
                     )
                 
                 # Convert sample_rate back to int if it was selected as string
@@ -474,6 +494,7 @@ def _details_schema(models: list[str], personas: list[str], user_input: dict | N
             
             # Get filtered persona options for the selected language and sex
             persona_options = get_persona_options_for_language_and_sex(personas, selected_language, selected_sex)
+            _LOGGER.debug("Filtered persona options for lang='%s', sex='%s': %s", selected_language, selected_sex, persona_options)
             
             # Convert current persona value to display name if it exists
             current_persona = ui.get(CONF_PERSONA, DEFAULTS[CONF_PERSONA])
@@ -483,9 +504,12 @@ def _details_schema(models: list[str], personas: list[str], user_input: dict | N
             else:
                 current_persona_display = get_persona_display_name(current_persona, selected_language, selected_sex)
             
+            _LOGGER.debug("Current persona: '%s' -> display: '%s'", current_persona, current_persona_display)
+            
             # If current persona is not in filtered options, add it (unless it's None/empty)
             if current_persona and current_persona_display not in persona_options and current_persona_display:
                 persona_options.append(current_persona_display)
+                _LOGGER.debug("Added current persona to options: %s", current_persona_display)
             
             schema[vol.Optional(CONF_PERSONA, default=current_persona_display)] = selector.selector({
                 "select": {
@@ -535,16 +559,6 @@ def _details_schema(models: list[str], personas: list[str], user_input: dict | N
         current_persona = ui.get(CONF_PERSONA, DEFAULTS[CONF_PERSONA])
         if current_persona and current_persona != "" and personas:
             schema[vol.Optional(CONF_PREVIEW_TEXT, default=ui.get(CONF_PREVIEW_TEXT, DEFAULT_PREVIEW_TEXT))] = cv.string
-            
-            # Add preview button - only show if we have preview text
-            current_preview_text = ui.get(CONF_PREVIEW_TEXT, DEFAULT_PREVIEW_TEXT)
-            if current_preview_text and current_preview_text.strip():
-                schema[vol.Optional("preview_button")] = selector.selector({
-                    "button": {
-                        "label": "Preview Audio",
-                        "icon": "mdi:play",
-                    }
-                })
         
         result = vol.Schema(schema)
         _LOGGER.debug("Details schema created successfully")
@@ -566,8 +580,20 @@ class KokoroOptionsFlow(config_entries.OptionsFlow):
         _LOGGER.debug("KokoroOptionsFlow.async_step_init called with user_input: %s", user_input)
         try:
             if user_input is not None:
+                _LOGGER.debug("Options flow: Processing user input with keys: %s", list(user_input.keys()))
+                
                 # Check if this is a filter change (language or sex) - not final submission
-                if CONF_LANGUAGE in user_input or CONF_SEX in user_input:
+                has_language_change = CONF_LANGUAGE in user_input
+                has_sex_change = CONF_SEX in user_input
+                has_persona_selection = (user_input.get(CONF_PERSONA) is not None and 
+                                       user_input.get(CONF_PERSONA) != "" and 
+                                       str(user_input.get(CONF_PERSONA)).strip() != "")
+                
+                _LOGGER.debug("Options filter analysis: language_change=%s, sex_change=%s, persona_selected=%s", 
+                             has_language_change, has_sex_change, has_persona_selection)
+                
+                # If user changed filters and hasn't made a final persona selection, re-render
+                if (has_language_change or has_sex_change) and not has_persona_selection:
                     # Start with current options or fall back to entry data
                     data = {**self._entry.data, **(self._entry.options or {})}
                     base_url = data.get(CONF_BASE_URL)
@@ -585,11 +611,19 @@ class KokoroOptionsFlow(config_entries.OptionsFlow):
                     selected_sex = user_input.get(CONF_SEX, DEFAULTS[CONF_SEX])
                     current_persona = user_input.get(CONF_PERSONA, DEFAULTS[CONF_PERSONA])
                     
-                    # Check if current persona is still valid for the selected filters
+                    _LOGGER.debug("Options filter change: language='%s', sex='%s', current_persona='%s'", 
+                                 selected_language, selected_sex, current_persona)
+                    
+                    # Get filtered personas for the new filter settings
                     filtered_personas = filter_personas_by_language_and_sex(personas, selected_language, selected_sex)
-                    if current_persona and get_technical_persona_name(current_persona) not in filtered_personas:
-                        # Reset persona to None if current persona is invalid for new filters
-                        user_input[CONF_PERSONA] = None
+                    
+                    # Check if current persona is still valid for the selected filters
+                    if current_persona:
+                        technical_persona = get_technical_persona_name(current_persona)
+                        if technical_persona not in filtered_personas:
+                            # Reset persona to None if current persona is invalid for new filters
+                            user_input[CONF_PERSONA] = None
+                            _LOGGER.debug("Options: Reset persona because '%s' not in filtered personas", technical_persona)
                     elif not current_persona and filtered_personas:
                         # No persona was selected, leave it as None to force user choice
                         user_input[CONF_PERSONA] = None
@@ -684,77 +718,3 @@ class KokoroOptionsFlow(config_entries.OptionsFlow):
             _LOGGER.error("Exception in KokoroOptionsFlow.async_step_init: %s", e)
             _LOGGER.error("Traceback: %s", traceback.format_exc())
             return self.async_abort(reason="unknown_error")
-
-
-# WebSocket API for audio preview
-@require_admin
-@websocket_command({
-    vol.Required("type"): "kokoro_tts/preview_audio",
-    vol.Required("base_url"): str,
-    vol.Required("model"): str,
-    vol.Required("persona"): str,
-    vol.Required("text"): str,
-    vol.Optional("speed", default=1.0): vol.All(vol.Coerce(float), vol.Range(min=0.25, max=4.0)),
-    vol.Optional("format", default="wav"): vol.In(["wav", "mp3", "ogg"]),
-    vol.Optional("sample_rate", default="24000"): str,
-    vol.Optional("api_key"): str,
-})
-async def websocket_preview_audio(
-    hass: HomeAssistant,
-    connection: ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Handle audio preview requests via WebSocket."""
-    try:
-        # Extract parameters
-        base_url = msg["base_url"].rstrip("/")
-        model = msg["model"]
-        persona = msg["persona"]
-        text = msg["text"]
-        speed = msg.get("speed", 1.0)
-        format = msg.get("format", "wav")
-        sample_rate = msg.get("sample_rate", "24000")
-        api_key = msg.get("api_key")
-        
-        # Prepare the request
-        url = f"{base_url}/v1/audio/speech"
-        
-        payload = {
-            "model": model,
-            "voice": persona,
-            "input": text,
-            "speed": speed,
-            "response_format": format,
-            "sample_rate": int(sample_rate)
-        }
-        
-        headers = {"Content-Type": "application/json"}
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-        
-        # Make the request to Kokoro API
-        timeout = aiohttp.ClientTimeout(total=30)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.post(url, json=payload, headers=headers) as response:
-                if response.status == 200:
-                    audio_data = await response.read()
-                    # Convert to base64 for transmission
-                    import base64
-                    audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-                    
-                    connection.send_result(msg["id"], {
-                        "success": True,
-                        "audio_data": audio_base64,
-                        "content_type": f"audio/{format}",
-                        "message": "Audio preview generated successfully"
-                    })
-                else:
-                    error_text = await response.text()
-                    connection.send_error(msg["id"], "preview_failed", f"Failed to generate audio: {error_text}")
-                    
-    except aiohttp.ClientError as e:
-        _LOGGER.error("Network error during audio preview: %s", e)
-        connection.send_error(msg["id"], "network_error", f"Network error: {str(e)}")
-    except Exception as e:
-        _LOGGER.error("Unexpected error during audio preview: %s", e)
-        connection.send_error(msg["id"], "unknown_error", f"Unexpected error: {str(e)}")
