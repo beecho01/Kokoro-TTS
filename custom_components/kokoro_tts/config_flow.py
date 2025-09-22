@@ -25,12 +25,10 @@ from .const import (
     CONF_SPEED,
     CONF_FORMAT,
     CONF_SAMPLE_RATE,
-    CONF_PREVIEW_TEXT,
     DEFAULTS,
     PERSONA_MAPPINGS,
     LANGUAGE_OPTIONS,
     SEX_OPTIONS,
-    DEFAULT_PREVIEW_TEXT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -554,11 +552,6 @@ def _details_schema(models: list[str], personas: list[str], user_input: dict | N
                 "mode": "dropdown",
             }
         })
-        
-        # Preview text input (only show if persona is selected and not None/empty)
-        current_persona = ui.get(CONF_PERSONA, DEFAULTS[CONF_PERSONA])
-        if current_persona and current_persona != "" and personas:
-            schema[vol.Optional(CONF_PREVIEW_TEXT, default=ui.get(CONF_PREVIEW_TEXT, DEFAULT_PREVIEW_TEXT))] = cv.string
         
         result = vol.Schema(schema)
         _LOGGER.debug("Details schema created successfully")

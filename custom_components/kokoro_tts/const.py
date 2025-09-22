@@ -10,7 +10,6 @@ CONF_SEX = "sex"
 CONF_SPEED = "speed"
 CONF_FORMAT = "format"
 CONF_SAMPLE_RATE = "sample_rate"
-CONF_PREVIEW_TEXT = "preview_text"
 
 # Default values
 DEFAULT_API_KEY = "not-needed"
@@ -21,7 +20,6 @@ DEFAULT_SEX = "All"
 DEFAULT_SPEED = 0.9
 DEFAULT_FORMAT = "wav"
 DEFAULT_SAMPLE_RATE = 24000
-DEFAULT_PREVIEW_TEXT = "Hello, this is a preview of the selected persona."
 
 # Voice mapping: technical_name -> (language, gender, display_name)
 PERSONA_MAPPINGS = {
