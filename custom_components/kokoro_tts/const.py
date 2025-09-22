@@ -4,23 +4,27 @@ DOMAIN = "kokoro_tts"
 CONF_BASE_URL = "base_url"
 CONF_API_KEY = "api_key"
 CONF_MODEL = "model"
-CONF_VOICE = "voice"
+CONF_PERSONA = "voice"
 CONF_LANGUAGE = "language"
+CONF_SEX = "sex"
 CONF_SPEED = "speed"
 CONF_FORMAT = "format"
 CONF_SAMPLE_RATE = "sample_rate"
+CONF_PREVIEW_TEXT = "preview_text"
 
 # Default values
 DEFAULT_API_KEY = "not-needed"
 DEFAULT_MODEL = "kokoro"
-DEFAULT_VOICE = "bm_lewis"
+DEFAULT_PERSONA = None
 DEFAULT_LANGUAGE = "All Languages"
+DEFAULT_SEX = "All"
 DEFAULT_SPEED = 0.9
 DEFAULT_FORMAT = "wav"
 DEFAULT_SAMPLE_RATE = 24000
+DEFAULT_PREVIEW_TEXT = "Hello, this is a preview of the selected persona."
 
 # Voice mapping: technical_name -> (language, gender, display_name)
-VOICE_MAPPINGS = {
+PERSONA_MAPPINGS = {
     # American English (🇺🇸)
     "af_heart": ("American English", "Female", "Heart"),
     "af_alloy": ("American English", "Female", "Alloy"),
@@ -108,12 +112,20 @@ LANGUAGE_OPTIONS = [
     "All Languages"
 ]
 
+# Sex options for filtering
+SEX_OPTIONS = [
+    "Female",
+    "Male", 
+    "All"
+]
+
 # Consolidated defaults dictionary
 DEFAULTS = {
     CONF_API_KEY: DEFAULT_API_KEY,
     CONF_MODEL: DEFAULT_MODEL,
-    CONF_VOICE: DEFAULT_VOICE,
+    CONF_PERSONA: DEFAULT_PERSONA,  # None - user must select
     CONF_LANGUAGE: DEFAULT_LANGUAGE,
+    CONF_SEX: DEFAULT_SEX,
     CONF_SPEED: DEFAULT_SPEED,
     CONF_FORMAT: DEFAULT_FORMAT,
     CONF_SAMPLE_RATE: DEFAULT_SAMPLE_RATE,

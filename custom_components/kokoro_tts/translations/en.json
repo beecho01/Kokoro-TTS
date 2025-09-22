@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Kokoro TTS Connection",
-        "description": "Connect to your Kokoro TTS server. We'll discover available models and voices automatically.",
+        "description": "Connect to your Kokoro TTS server. We'll discover available models and personas automatically.",
         "data": {
           "base_url": "Base URL (e.g. http://192.168.0.1:8880)",
           "api_key": "API Key (optional, leave default if not needed)"
@@ -11,20 +11,36 @@
       },
       "details": {
         "title": "Kokoro TTS Configuration",
-        "description": "Configure TTS settings. Models found: {models_found}. Voices found: {voices_found}.",
+        "description": "Configure your TTS settings. Select a persona accent and sex to filter available personas.",
         "data": {
           "model": "Model",
-          "language": "Voice Language",
-          "voice": "Voice",
+          "language": "Voice Accent",
+          "sex": "Sex",
+          "persona": "Persona",
           "speed": "Speech speed (0.25x - 4.0x)",
           "format": "Audio format",
-          "sample_rate": "Sample rate (Hz)"
+          "sample_rate": "Sample rate (Hz)",
+          "preview_text": "Preview Text",
+          "preview_button": "Preview Audio"
         }
       }
     },
     "error": {
       "base_url_required": "Base URL is required",
-      "invalid_base_url": "Enter a valid http(s) URL"
+      "invalid_base_url": "Enter a valid http(s) URL",
+      "persona_required": "Please select a persona"
+    },
+    "placeholder": {
+      "select_persona": "Select a persona...",
+      "select_persona_american": "Select an American English persona...",
+      "select_persona_british": "Select a British English persona...",
+      "select_persona_japanese": "Select a Japanese persona...",
+      "select_persona_chinese": "Select a Chinese persona...",
+      "select_persona_spanish": "Select a Spanish persona...",
+      "select_persona_french": "Select a French persona...",
+      "select_persona_hindi": "Select a Hindi persona...",
+      "select_persona_italian": "Select an Italian persona...",
+      "select_persona_portuguese": "Select a Portuguese persona..."
     },
     "abort": {
       "already_configured": "This Kokoro TTS server is already configured"
@@ -34,11 +50,12 @@
     "step": {
       "init": {
         "title": "Kokoro TTS Options",
-        "description": "Adjust defaults. Models found: {models_found}. Voices found: {voices_found}. Use per-call overrides in tts.speak → options.",
+        "description": "Adjust default settings. Select a persona accent and sex to filter available personas.",
         "data": {
           "model": "Model",
-          "language": "Voice Language",
-          "voice": "Voice",
+          "language": "Voice Accent",
+          "sex": "Sex",
+          "persona": "Persona",
           "speed": "Speech speed (0.25x - 4.0x)",
           "format": "Audio format",
           "sample_rate": "Sample rate (Hz)"
