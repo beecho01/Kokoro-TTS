@@ -1,0 +1,101 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# pytest
+.cache
+
+# mypy
+.mypy_cache/
+.dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# VS Code
+.vscode/
+
+# Home Assistant
+home-assistant.log
+home-assistant_v2.db*
+
+# Custom component build artifacts
+custom_components/*/__pycache__/
+custom_components/*/*.pyc
+custom_components/*/*.pyo
+custom_components/*/*.pyd
+custom_components/*/*.so
+custom_components/*/*.egg-info/
+custom_components/*/.mypy_cache/
+custom_components/*/.pytest_cache/
+custom_components/*/.tox/
+custom_components/*/.nox/
+custom_components/*/.coverage
+custom_components/*/.hypothesis/
+custom_components/*/.pyre/
+
+# Docs
+/docs/_build/
+/docs/.doctrees/
+/docs/.pytest_cache/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Env files
+.env
+.env.*
+
+# Local dev/test
+*.local
+*.log
