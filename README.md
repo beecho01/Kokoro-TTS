@@ -1,10 +1,26 @@
-# Kokoro-TTS
+<div id="top">
+  <p align="center">
+    <img src="https://raw.githubusercontent.com/beecho01/Kokoro-TTS/refs/heads/main/docs/images/Kokoro_Header.png" width="600" alt="Kokoro TTS Header">
+  </p>
+</div>
 
-[![hacs][hacs-badge]][hacs-link]
-[![license][license-badge]][license-link]
+<div>
+  <p align="center">
+    <img src="https://img.shields.io/github/languages/top/beecho01/Kokoro-TTS?style=for-the-badge&color=FFFFFF">
+    <img src="https://img.shields.io/github/languages/code-size/beecho01/Kokoro-TTS?style=for-the-badge&color=FFFFFF">
+    <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-8257e6?style=for-the-badge&logoColor=white&label=License&color=FFFFFF"></a>
+  </p>
+ <br>
+</div>
 
-A [Home Assistant](https://www.home-assistant.io/) custom integration for connecting to [Kokoro FastAPI](https://github.com/remsky/Kokoro-FastAPI), enabling high-quality local Text-to-Speech.  
-Easily send TTS audio to your speakers or media players directly from Home Assistant.
+---
+
+<p align="center">
+  <em>
+    A <a href="https://www.home-assistant.io/">Home Assistant</a> custom integration for connecting to <a href="https://github.com/remsky/Kokoro-FastAPI">Kokoro FastAPI</a>, enabling high-quality local Text-to-Speech.  
+    Easily send TTS audio to your speakers or media players directly from Home Assistant.
+  </em>
+</p>
 
 ---
 
@@ -79,3 +95,4 @@ Verify the voice exists on your Kokoro server.
 ## 🙏 Credits
 
 Kokoro FastAPI backend: @remsky
+
