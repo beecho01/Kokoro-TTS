@@ -78,10 +78,10 @@ Work-in-progress
 
 | Language             | Sex | Name      | Preview | Persona Code |
 |----------------------|--------|-----------|---------|--------------|
-| American English 🇺🇸 | Female | Heart     | [Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/af_heart.mp3) | af_heart |
-| American English 🇺🇸 | Female | Alloy     | <audio controls src="docs/audio/af_alloy.mp3"></audio> | af_alloy |
-| American English 🇺🇸 | Female | Aoede     | <audio controls src="docs/audio/af_aoede.mp3"></audio> | af_aoede |
-| American English 🇺🇸 | Female | Bella     | <audio controls src="docs/audio/af_bella.mp3"></audio> | af_bella |
+| American English 🇺🇸 | Female | Heart     | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/af_heart.mp3) | af_heart |
+| American English 🇺🇸 | Female | Alloy     | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/af_alloy.mp3) | af_alloy |
+| American English 🇺🇸 | Female | Aoede     | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/af_aoede.mp3) | af_aoede |
+| American English 🇺🇸 | Female | Bella     | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/af_bella.mp3) | af_bella |
 | American English 🇺🇸 | Female | Jessica   | <audio controls src="docs/audio/af_jessica.mp3"></audio> | af_jessica |
 | American English 🇺🇸 | Female | Kore      | <audio controls src="docs/audio/af_kore.mp3"></audio> | af_kore |
 | American English 🇺🇸 | Female | Nicole    | <audio controls src="docs/audio/af_nicole.mp3"></audio> | af_nicole |
