@@ -65,7 +65,8 @@
 
 ## ⚙️ Configuration
 
-Work-in-progress
+> [!NOTE]
+> Work in Progress
 
 ---
 
@@ -133,12 +134,9 @@ Work-in-progress
 ---
 
 ## 🛠 Troubleshooting
-- First word is cut off
-Add a short delay before playback, or adjust server settings.
-- No sound
-Check server_url and make sure Kokoro FastAPI is running.
-- Wrong voice
-Verify the voice exists on your Kokoro server.
+
+> [!NOTE]
+> Work in Progress
 
 ---
 
