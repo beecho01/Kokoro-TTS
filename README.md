@@ -61,9 +61,11 @@
 1. Go to `HACS` → `Integrations` → `Custom repositories`.  
 2. Add this repository: `https://github.com/beecho01/Kokoro-TTS` with category `Integration`.
 3. Either search for `Kokoro-TTS` in HACS or tap the below button:
+   
    [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=beecho01&repository=Kokoro-TTS)
 4. Tap `Download` and then `Install`.
 5. Then tap next setup quick-link below to complete the setup configuration:
+   
     [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=Kokoro-TTS)
 6. [Configure](#️-configuration) the Kokoro TTS integration as desired.
 7. Restart Home Assistant.
@@ -227,3 +229,4 @@ target:
 ## 🙏 Credits
 
 Kokoro FastAPI backend: [@remsky](https://github.com/remsky)
+
