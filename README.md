@@ -76,7 +76,7 @@ Work-in-progress
 
 Work-in-progress
 
-| Language             | Gender | Name      | Preview | Persona Code |
+| Language             | Sex | Name      | Preview | Persona Code |
 |----------------------|--------|-----------|---------|--------------|
 | American English 🇺🇸 | Female | Heart     | <audio controls src="docs/audio/af_heart.mp3"></audio> | af_heart |
 | American English 🇺🇸 | Female | Alloy     | <audio controls src="docs/audio/af_alloy.mp3"></audio> | af_alloy |
