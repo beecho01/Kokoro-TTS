@@ -28,18 +28,6 @@
       "invalid_base_url": "Enter a valid http(s) URL",
       "persona_required": "Please select a persona"
     },
-    "placeholder": {
-      "select_persona": "Select a persona...",
-      "select_persona_american": "Select an American English persona...",
-      "select_persona_british": "Select a British English persona...",
-      "select_persona_japanese": "Select a Japanese persona...",
-      "select_persona_chinese": "Select a Chinese persona...",
-      "select_persona_spanish": "Select a Spanish persona...",
-      "select_persona_french": "Select a French persona...",
-      "select_persona_hindi": "Select a Hindi persona...",
-      "select_persona_italian": "Select an Italian persona...",
-      "select_persona_portuguese": "Select a Portuguese persona..."
-    },
     "abort": {
       "already_configured": "This Kokoro TTS server is already configured"
     }
