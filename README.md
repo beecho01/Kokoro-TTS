@@ -78,7 +78,7 @@ Work-in-progress
 
 | Language             | Sex | Name      | Preview | Persona Code |
 |----------------------|--------|-----------|---------|--------------|
-| American English 🇺🇸 | Female | Heart     | <audio controls src="docs/audio/af_heart.mp3"></audio> | af_heart |
+| American English 🇺🇸 | Female | Heart     | ![Audio](docs/audio/af_heart.mp3) | af_heart |
 | American English 🇺🇸 | Female | Alloy     | <audio controls src="docs/audio/af_alloy.mp3"></audio> | af_alloy |
 | American English 🇺🇸 | Female | Aoede     | <audio controls src="docs/audio/af_aoede.mp3"></audio> | af_aoede |
 | American English 🇺🇸 | Female | Bella     | <audio controls src="docs/audio/af_bella.mp3"></audio> | af_bella |
