@@ -23,10 +23,7 @@
 </p>
 
 <p align="center">
-  🎧 <strong>Listen to a preview:</strong><br>
-</p>
-
-[▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/af_heart.mp3)
+  🎧 <strong>Listen to a preview:</strong><a href="https://beecho01.github.io/Kokoro-TTS/docs/audio/af_heart.mp3">▶ Play</a>
 
 ---
 
