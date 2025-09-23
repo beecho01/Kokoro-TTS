@@ -24,6 +24,24 @@
 <p align="center">
   🎧 <strong>Listen to a preview: </strong><a href="https://beecho01.github.io/Kokoro-TTS/docs/audio/af_heart.mp3">▶ Play</a>
 
+
+---
+
+## 📑 Quick Links
+- [📑 Quick Links](#-quick-links)
+- [✨ Features](#-features)
+- [📦 Installation](#-installation)
+  - [HACS (recommended)](#hacs-recommended)
+  - [Manual](#manual)
+- [⚙️ Configuration](#️-configuration)
+  - [Configuration Options](#configuration-options)
+  - [👨👩 Personas](#-personas)
+  - [Setup Steps](#setup-steps)
+  - [YAML Configuration (Legacy)](#yaml-configuration-legacy)
+- [▶️ Usage](#️-usage)
+- [🛠 Troubleshooting](#-troubleshooting)
+- [🙏 Credits](#-credits)
+
 ---
 
 ## ✨ Features
@@ -43,11 +61,11 @@
 1. Go to `HACS` → `Integrations` → `Custom repositories`.  
 2. Add this repository: `https://github.com/beecho01/Kokoro-TTS` with category `Integration`.
 3. Either search for `Kokoro-TTS` in HACS or tap the below button:
-   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=beecho01&repository=material-symbols)
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=beecho01&repository=Kokoro-TTS)
 4. Tap `Download` and then `Install`.
 5. Then tap next setup quick-link below to complete the setup configuration:
-    [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=material_symbols)
-6. Configure the Kokoro TTS configuration as desired.
+    [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=Kokoro-TTS)
+6. [Configure](#️-configuration) the Kokoro TTS integration as desired.
 7. Restart Home Assistant.
 
 ### Manual
@@ -58,21 +76,30 @@
 4. Go to `Settings` → `Devices & services`.
 5. Click the `Add Configuration` button.
 6. Search for `Kokoro TTS` and select it.
-7. Configure the Kokoro TTS configuration as desired.
+7. [Configure](#️-configuration) the Kokoro TTS integration as desired.
 8. Restart Home Assistant.
 
 ---
 
 ## ⚙️ Configuration
 
-> [!NOTE]
-> Work in Progress
+The integration can be configured through Home Assistant's UI with automatic discovery of available models and voices from your Kokoro FastAPI server.
 
----
+### Configuration Options
 
-## ▶️ Usage
+| Option | Description | Default | Range/Options |
+|--------|-------------|---------|---------------|
+| `base_url` | Kokoro FastAPI server URL | *Required* | Valid HTTP/HTTPS URL |
+| `api_key` | Authentication key | `"not-needed"` | Any string |
+| `model` | TTS model to use | `"kokoro"` | Auto-discovered or custom |
+| `language` | Language filter for voices | `"All Languages"` | All Languages, American English, British English, Japanese, etc. |
+| `sex` | Sex filter for voices | `"All"` | All, Female, Male |
+| `persona` | Voice persona/character | *Required* | Auto-discovered from server |
+| `speed` | Speech speed multiplier | `1.0` | 0.25 - 4.0 |
+| `format` | Audio format | `"wav"` | wav, mp3, opus, flac, pcm |
+| `sample_rate` | Audio sample rate | `24000` | 22050, 24000, 44100 |
 
-Work-in-progress
+### 👨👩 Personas
 
 | Language             | Sex | Name      | Preview | Persona Code |
 |----------------------|-----|-----------|---------|--------------|
@@ -130,6 +157,63 @@ Work-in-progress
 | Brazilian Portuguese 🇧🇷 | Female | Dora   | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/pf_dora.mp3) | pf_dora |
 | Brazilian Portuguese 🇧🇷 | Male   | Alex   | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/pm_alex.mp3) | pm_alex |
 | Brazilian Portuguese 🇧🇷 | Male   | Santa  | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/pm_santa.mp3) | pm_santa |
+
+### Setup Steps
+
+1. **Add Integration**: Go to `Settings` → `Devices & services` → `Add Integration` → Search for "Kokoro TTS"
+
+2. **Server Connection**: 
+   - **Base URL**: Your Kokoro FastAPI server URL (e.g., `http://localhost:8880`)
+   - **API Key**: Optional authentication key (leave as `not-needed` if not required)
+
+3. **Voice & Model Selection**:
+   - **Model**: Automatically discovered from `/v1/models` endpoint (defaults to "kokoro")
+   - **Language Filter**: Filter personas by language (All Languages, American English, British English, etc.)
+   - **Sex Filter**: Filter personas by sex (All, Female, Male)
+   - **Voice/Persona**: Select from filtered list of available personas
+   - **Speed**: Playback speed (0.25x to 4.0x, default: 1.0)
+   - **Format**: Audio format (wav, mp3, opus, flac, pcm)
+   - **Sample Rate**: Audio sample rate (22050, 24000, 44100 Hz)
+
+### YAML Configuration (Legacy)
+
+While the UI configuration is recommended, YAML configuration is still supported:
+
+```yaml
+# configuration.yaml
+tts:
+  - platform: kokoro_tts
+    base_url: "http://localhost:8880"
+    api_key: "your_api_key_here"
+    model: "kokoro"
+    persona: "af_heart"
+    speed: 1.0
+    format: "wav"
+    sample_rate: 24000
+    name: "Nabu"
+```
+
+---
+
+## ▶️ Usage
+
+**Voice Assistant**
+
+> [!NOTE]
+> Work in Progress
+
+**Triggered action**
+
+```
+action: tts.speak
+data:
+  media_player_entity_id: media_player.living_room_speaker
+  message: 'Hello from Kokoro Text-to-Speech!'
+  cache: false
+  language: en
+target:
+  entity_id: tts.kokoro
+```
 
 ---
 
