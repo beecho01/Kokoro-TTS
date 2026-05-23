@@ -40,6 +40,9 @@
   - [YAML Configuration (Legacy)](#yaml-configuration-legacy)
 - [▶️ Usage](#️-usage)
 - [🛠 Troubleshooting](#-troubleshooting)
+  - [Connection errors during setup](#connection-errors-during-setup)
+  - [Voice/persona not changing after options update](#voicepersona-not-changing-after-options-update)
+  - [Per-call option overrides](#per-call-option-overrides)
 - [🙏 Credits](#-credits)
 
 ---
@@ -51,6 +54,9 @@
 - 🎙️ Voice selection with per-call overrides  
 - 🔧 Configurable server URL and parameters  
 - 🏠 Works with any Home Assistant `media_player` entity  
+- ✅ Connection test during setup — validates server reachability before configuring  
+- 🔄 Options changes take effect immediately — no restart required  
+- 🌐 Automatic `lang_code` detection for optimal multilingual support  
 
 ---
 
@@ -68,7 +74,6 @@
    
     [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=Kokoro-TTS)
 6. [Configure](#️-configuration) the Kokoro TTS integration as desired.
-7. Restart Home Assistant.
 
 ### Manual
 
@@ -79,7 +84,6 @@
 5. Click the `Add Configuration` button.
 6. Search for `Kokoro TTS` and select it.
 7. [Configure](#️-configuration) the Kokoro TTS integration as desired.
-8. Restart Home Assistant.
 
 ---
 
@@ -98,7 +102,7 @@ The integration can be configured through Home Assistant's UI with automatic dis
 | `sex` | Sex filter for voices | `"All"` | All, Female, Male |
 | `persona` | Voice persona/character | *Required* | Auto-discovered from server |
 | `speed` | Speech speed multiplier | `1.0` | 0.25 - 4.0 |
-| `format` | Audio format | `"wav"` | wav, mp3, opus, flac, pcm |
+| `format` | Audio format | `"mp3"` | mp3, wav, opus, flac, pcm |
 | `sample_rate` | Audio sample rate | `24000` | 22050, 24000, 44100 |
 
 ### 👨👩 Personas
@@ -164,9 +168,10 @@ The integration can be configured through Home Assistant's UI with automatic dis
 
 1. **Add Integration**: Go to `Settings` → `Devices & services` → `Add Integration` → Search for "Kokoro TTS"
 
-2. **Server Connection**: 
+2. **Server Connection** (validated automatically):
    - **Base URL**: Your Kokoro FastAPI server URL (e.g., `http://localhost:8880`)
    - **API Key**: Optional authentication key (leave as `not-needed` if not required)
+   - The integration will test the connection before proceeding — if it fails, you'll see a specific error message
 
 3. **Voice & Model Selection**:
    - **Model**: Automatically discovered from `/v1/models` endpoint (defaults to "kokoro")
@@ -174,26 +179,14 @@ The integration can be configured through Home Assistant's UI with automatic dis
    - **Sex Filter**: Filter personas by sex (All, Female, Male)
    - **Voice/Persona**: Select from filtered list of available personas
    - **Speed**: Playback speed (0.25x to 4.0x, default: 1.0)
-   - **Format**: Audio format (wav, mp3, opus, flac, pcm)
+   - **Format**: Audio format (mp3, wav, opus, flac, pcm)
    - **Sample Rate**: Audio sample rate (22050, 24000, 44100 Hz)
+
+> **Changing options?** Any changes made via `Settings` → `Devices & Services` → `Configure` take effect immediately — no Home Assistant restart is required.
 
 ### YAML Configuration (Legacy)
 
-While the UI configuration is recommended, YAML configuration is still supported:
-
-```yaml
-# configuration.yaml
-tts:
-  - platform: kokoro_tts
-    base_url: "http://localhost:8880"
-    api_key: "your_api_key_here"
-    model: "kokoro"
-    persona: "af_heart"
-    speed: 1.0
-    format: "wav"
-    sample_rate: 24000
-    name: "Nabu"
-```
+> ⚠️ YAML configuration is no longer supported. Please use the UI configuration flow instead. If you previously used YAML, remove the `kokoro_tts` entry from your `configuration.yaml` and set up the integration through the UI.
 
 ---
 
@@ -221,8 +214,48 @@ target:
 
 ## 🛠 Troubleshooting
 
-> [!NOTE]
-> Work in Progress
+### Connection errors during setup
+
+| Error | Cause | Fix |
+|-------|-------|----|
+| Cannot connect to the server | Server not reachable | Check the URL, ensure the server is running, and verify network connectivity |
+| Connection timed out | Server too slow to respond | Check server load; increase timeout if server is slow to start |
+| SSL error | Certificate issue | Check your reverse proxy / SSL certificate settings |
+| Server not found | URL points to wrong endpoint | Ensure the URL points to the Kokoro FastAPI root (e.g. `http://192.168.0.1:8880`) |
+| Authentication failed | Wrong API key | Check your API key matches the server's configured key |
+
+### Voice/persona not changing after options update
+
+Options changes take effect immediately without a restart. If the voice doesn't change, try:
+1. Go to `Settings` → `Devices & Services` → `Kokoro TTS` → `Configure`
+2. Change the persona and click `Submit`
+3. The TTS entity reloads automatically with the new settings
+
+### Per-call option overrides
+
+You can override the default persona, speed, format, and volume on a per-call basis:
+
+```yaml
+action: tts.speak
+data:
+  media_player_entity_id: media_player.living_room_speaker
+  message: "Hello from Kokoro!"
+  options:
+    persona: af_bella
+    speed: 1.5
+    format: mp3
+    volume_multiplier: 1.5
+target:
+  entity_id: tts.kokoro
+```
+
+| Option | Description | Default | Range |
+|--------|-------------|---------|-------|
+| `persona` | Voice persona code | Config default | Any discovered persona |
+| `speed` | Speech speed multiplier | `1.0` | 0.25 – 4.0 |
+| `format` | Audio format | `mp3` | mp3, wav, opus, flac, pcm |
+| `sample_rate` | Audio sample rate (Hz) | `24000` | 22050, 24000, 44100 |
+| `volume_multiplier` | Volume multiplier | `1.0` | Any positive float |
 
 ---
 

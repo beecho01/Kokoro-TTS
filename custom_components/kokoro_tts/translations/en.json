@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Kokoro TTS Connection",
-        "description": "Connect to your Kokoro TTS server. We'll discover available models and personas automatically.",
+        "description": "Connect to your Kokoro TTS server. The integration will automatically discover available models and voices.",
         "data": {
           "base_url": "Base URL (e.g. http://192.168.0.1:8880)",
           "api_key": "API Key (optional, leave default if not needed)"
@@ -11,7 +11,47 @@
       },
       "details": {
         "title": "Kokoro TTS Configuration",
-        "description": "Configure your TTS settings. Select a persona accent and sex to filter available personas.",
+        "description": "Configure your TTS settings. Use the Voice Accent and Sex filters to narrow down the persona list, then select a persona.",
+        "data": {
+          "model": "Model",
+          "language": "Voice Accent",
+          "sex": "Sex",
+          "persona": "Persona",
+          "speed": "Speech speed (0.25x - 4.0x)",
+          "format": "Audio format",
+          "sample_rate": "Sample rate (Hz)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Kokoro TTS",
+        "description": "The API key is no longer valid. Please enter a new API key.",
+        "data": {
+          "api_key": "API Key"
+        }
+      }
+    },
+    "error": {
+      "base_url_required": "Base URL is required",
+      "invalid_base_url": "Enter a valid http(s) URL",
+      "cannot_connect": "Cannot connect to the server - check the URL and that the server is running",
+      "timeout": "Connection timed out - the server took too long to respond",
+      "ssl_error": "SSL error - check your certificate settings",
+      "server_not_found": "Server responded but the Kokoro API was not found - check the URL",
+      "server_error": "Server returned an error - check the Kokoro service logs",
+      "auth_failed": "Authentication failed - check your API key",
+      "persona_required": "Please select a persona"
+    },
+    "abort": {
+      "already_configured": "This Kokoro TTS server is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reauth_failed": "Re-authentication failed"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kokoro TTS Options",
+        "description": "Adjust default settings. Use the Voice Accent and Sex filters to narrow down the persona list, then select a persona.",
         "data": {
           "model": "Model",
           "language": "Voice Accent",
@@ -24,29 +64,7 @@
       }
     },
     "error": {
-      "base_url_required": "Base URL is required",
-      "invalid_base_url": "Enter a valid http(s) URL",
       "persona_required": "Please select a persona"
-    },
-    "abort": {
-      "already_configured": "This Kokoro TTS server is already configured"
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Kokoro TTS Options",
-        "description": "Adjust default settings. Select a persona accent and sex to filter available personas.",
-        "data": {
-          "model": "Model",
-          "language": "Voice Accent",
-          "sex": "Sex",
-          "persona": "Persona",
-          "speed": "Speech speed (0.25x - 4.0x)",
-          "format": "Audio format",
-          "sample_rate": "Sample rate (Hz)"
-        }
-      }
     }
   }
 }

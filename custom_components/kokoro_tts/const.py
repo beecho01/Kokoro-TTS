@@ -1,4 +1,8 @@
 # custom_components/kokoro_tts/const.py
+from __future__ import annotations
+
+from typing import Any
+
 DOMAIN = "kokoro_tts"
 
 CONF_BASE_URL = "base_url"
@@ -10,6 +14,7 @@ CONF_SEX = "sex"
 CONF_SPEED = "speed"
 CONF_FORMAT = "format"
 CONF_SAMPLE_RATE = "sample_rate"
+CONF_VOLUME_MULTIPLIER = "volume_multiplier"
 
 # Default values
 DEFAULT_API_KEY = "not-needed"
@@ -17,9 +22,10 @@ DEFAULT_MODEL = "kokoro"
 DEFAULT_PERSONA = None
 DEFAULT_LANGUAGE = "All Languages"
 DEFAULT_SEX = "All"
-DEFAULT_SPEED = 0.9
-DEFAULT_FORMAT = "wav"
+DEFAULT_SPEED = 1.0
+DEFAULT_FORMAT = "mp3"
 DEFAULT_SAMPLE_RATE = 24000
+DEFAULT_VOLUME_MULTIPLIER = 1.0
 
 # Voice mapping: technical_name -> (language, gender, display_name)
 PERSONA_MAPPINGS = {
@@ -97,7 +103,7 @@ PERSONA_MAPPINGS = {
 }
 
 # Language groups for filtering
-LANGUAGE_OPTIONS = [
+LANGUAGE_OPTIONS: list[str] = [
     "American English",
     "British English", 
     "Japanese",
@@ -107,18 +113,32 @@ LANGUAGE_OPTIONS = [
     "Hindi",
     "Italian",
     "Brazilian Portuguese",
-    "All Languages"
+    "All Languages",
 ]
 
 # Sex options for filtering
-SEX_OPTIONS = [
+SEX_OPTIONS: list[str] = [
     "Female",
     "Male", 
-    "All"
+    "All",
 ]
 
+# Language code mapping for the Kokoro API lang_code parameter
+# Maps our language display names to the API's single-letter lang codes
+LANGUAGE_CODE_MAP: dict[str, str] = {
+    "American English": "a",
+    "British English": "b",
+    "Japanese": "j",
+    "Mandarin Chinese": "z",
+    "Spanish": "e",
+    "French": "f",
+    "Hindi": "h",
+    "Italian": "i",
+    "Brazilian Portuguese": "p",
+}
+
 # Consolidated defaults dictionary
-DEFAULTS = {
+DEFAULTS: dict[str, Any] = {
     CONF_API_KEY: DEFAULT_API_KEY,
     CONF_MODEL: DEFAULT_MODEL,
     CONF_PERSONA: DEFAULT_PERSONA,  # None - user must select
@@ -127,4 +147,5 @@ DEFAULTS = {
     CONF_SPEED: DEFAULT_SPEED,
     CONF_FORMAT: DEFAULT_FORMAT,
     CONF_SAMPLE_RATE: DEFAULT_SAMPLE_RATE,
+    CONF_VOLUME_MULTIPLIER: DEFAULT_VOLUME_MULTIPLIER,
 }
