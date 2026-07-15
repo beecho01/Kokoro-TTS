@@ -27,6 +27,12 @@ DEFAULT_FORMAT = "mp3"
 DEFAULT_SAMPLE_RATE = 24000
 DEFAULT_VOLUME_MULTIPLIER = 1.0
 
+# Streaming synthesises one sentence per request and concatenates the audio,
+# so the format must survive concatenation. Container formats that carry a
+# per-file header (wav, flac) do not.
+STREAM_SAFE_FORMATS: tuple[str, ...] = ("mp3", "opus", "pcm")
+DEFAULT_STREAM_FORMAT = "mp3"
+
 # Voice mapping: technical_name -> (language, gender, display_name)
 PERSONA_MAPPINGS = {
     # American English (🇺🇸)
