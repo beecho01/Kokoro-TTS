@@ -137,6 +137,27 @@ LANGUAGE_CODE_MAP: dict[str, str] = {
     "Brazilian Portuguese": "p",
 }
 
+# Maps our language display names to the language codes Home Assistant uses.
+# Home Assistant hides a TTS entity from any pipeline whose language is not
+# advertised here, so this must cover every language Kokoro can speak.
+LANGUAGE_HA_CODE_MAP: dict[str, str] = {
+    "American English": "en",
+    "British English": "en-GB",
+    "Japanese": "ja",
+    "Mandarin Chinese": "zh",
+    "Spanish": "es",
+    "French": "fr",
+    "Hindi": "hi",
+    "Italian": "it",
+    "Brazilian Portuguese": "pt-BR",
+}
+
+# Advertised to Home Assistant, derived from the voices Kokoro ships with.
+SUPPORTED_LANGUAGES: list[str] = sorted(set(LANGUAGE_HA_CODE_MAP.values()))
+
+# Used when no language is configured, or when "All Languages" is selected.
+DEFAULT_HA_LANGUAGE = "en"
+
 # Consolidated defaults dictionary
 DEFAULTS: dict[str, Any] = {
     CONF_API_KEY: DEFAULT_API_KEY,
