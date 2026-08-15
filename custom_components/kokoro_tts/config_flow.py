@@ -424,8 +424,13 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
             if filters_changed or not has_persona:
-                # Re-render with updated filters
+                # Re-render with updated filters. Drop the previous persona
+                # selection when the filter itself changed - otherwise
+                # _details_schema force-includes it in the "current persona"
+                # list even though it no longer matches the new filter.
                 self._last_filters = current_filters
+                if filters_changed:
+                    user_input = {**user_input, CONF_PERSONA: ""}
                 schema = _details_schema(models, personas, user_input)
                 return self.async_show_form(step_id="details", data_schema=schema)
 
@@ -559,11 +564,16 @@ class KokoroOptionsFlow(config_entries.OptionsFlowWithReload):
             )
 
             if filters_changed or not has_persona:
-                # Re-render with updated filters
+                # Re-render with updated filters. Drop the previous persona
+                # selection when the filter itself changed - otherwise
+                # _details_schema force-includes it in the "current persona"
+                # list even though it no longer matches the new filter.
                 self._last_filters = current_filters
                 data = {**self._entry.data, **(self._entry.options or {})}
                 data.pop(CONF_BASE_URL, None)
                 form_data = {**data, **user_input}
+                if filters_changed:
+                    form_data[CONF_PERSONA] = ""
 
                 base_url = self._entry.data[CONF_BASE_URL]
                 api_key = self._entry.data.get(CONF_API_KEY, DEFAULTS[CONF_API_KEY])
