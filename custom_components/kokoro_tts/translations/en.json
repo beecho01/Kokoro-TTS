@@ -22,10 +22,14 @@
         "title": "Select Persona",
         "description": "Pick a persona from the filtered list, then set your default speech options. Tip: to blend voices, type a custom value such as `af_bella+af_sky` (equal blend) or `af_bella(2)+af_sky(1)` (weighted blend) instead of picking one from the list.",
         "data": {
+          "change_filters": "Change Voice Accent / Sex",
           "persona": "Persona",
           "speed": "Speech speed (0.25x - 4.0x)",
           "format": "Audio format",
           "sample_rate": "Sample rate (Hz)"
+        },
+        "data_description": {
+          "change_filters": "Enable and submit to go back and pick a different accent or sex instead of a persona"
         }
       },
       "reauth_confirm": {
@@ -68,10 +72,14 @@
         "title": "Kokoro TTS Options: Select Persona",
         "description": "Pick a persona from the filtered list, then set your default speech options. Tip: to blend voices, type a custom value such as `af_bella+af_sky` (equal blend) or `af_bella(2)+af_sky(1)` (weighted blend) instead of picking one from the list.",
         "data": {
+          "change_filters": "Change Voice Accent / Sex",
           "persona": "Persona",
           "speed": "Speech speed (0.25x - 4.0x)",
           "format": "Audio format",
           "sample_rate": "Sample rate (Hz)"
+        },
+        "data_description": {
+          "change_filters": "Enable and submit to go back and pick a different accent or sex instead of a persona"
         }
       }
     },

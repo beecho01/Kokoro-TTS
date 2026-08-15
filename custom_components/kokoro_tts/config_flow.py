@@ -36,6 +36,10 @@ _LOGGER = logging.getLogger(__name__)
 _FORMAT_OPTIONS = ["mp3", "wav", "opus", "flac", "pcm"]
 _SAMPLE_RATE_OPTIONS = ["22050", "24000", "44100"]
 
+# Transient, wizard-only field - never stored in the config entry. Lets the
+# persona step send the user back to the filter step.
+CONF_CHANGE_FILTERS = "change_filters"
+
 
 # ---------------------------------------------------------------------------
 # Persona helpers
@@ -303,6 +307,11 @@ def _persona_schema(
     ui = user_input or {}
     schema: dict[vol.Optional | vol.Required, Any] = {}
 
+    # "Back" affordance: HA config-flow forms have no native back button, so
+    # this checkbox is how a user returns to the filter step to change accent
+    # or sex without restarting the whole flow.
+    schema[vol.Optional(CONF_CHANGE_FILTERS, default=False)] = bool
+
     if personas:
         persona_options = get_persona_options_for_language_and_sex(
             personas, selected_language, selected_sex
@@ -367,6 +376,7 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._base_info: dict[str, Any] = {}
         self._discovered: dict[str, list[str]] = {}
         self._filters: dict[str, Any] = {}
+        self._persona_prefill: dict[str, Any] = {}
 
     @staticmethod
     @callback
@@ -431,8 +441,10 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
             return await self.async_step_persona()
 
+        # Pre-fill from the last-submitted filters (e.g. when the user comes
+        # back here via the persona step's "Change Voice Accent / Sex").
         return self.async_show_form(
-            step_id="filters", data_schema=_filters_schema(models, user_input)
+            step_id="filters", data_schema=_filters_schema(models, self._filters)
         )
 
     async def async_step_persona(self, user_input: dict | None = None):
@@ -442,6 +454,15 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         selected_sex = self._filters.get(CONF_SEX, DEFAULTS[CONF_SEX])
 
         if user_input is not None:
+            if user_input.pop(CONF_CHANGE_FILTERS, False):
+                # Keep whatever speed/format/sample_rate the user already set;
+                # the persona itself is dropped, since it may not match
+                # whatever accent/sex they pick next.
+                self._persona_prefill = {
+                    k: v for k, v in user_input.items() if k != CONF_PERSONA
+                }
+                return await self.async_step_filters()
+
             # Convert sample_rate to int
             if CONF_SAMPLE_RATE in user_input and isinstance(user_input[CONF_SAMPLE_RATE], str):
                 try:
@@ -478,7 +499,9 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="persona",
-            data_schema=_persona_schema(personas, selected_language, selected_sex, user_input),
+            data_schema=_persona_schema(
+                personas, selected_language, selected_sex, self._persona_prefill
+            ),
         )
 
     async def async_step_reauth(self, entry_data: dict):
@@ -555,6 +578,7 @@ class KokoroOptionsFlow(config_entries.OptionsFlowWithReload):
         self._entry = config_entry
         self._filters: dict[str, Any] = {}
         self._discovered: dict[str, list[str]] = {}
+        self._persona_prefill: dict[str, Any] = {}
 
     async def _async_discover(self) -> tuple[list[str], list[str]]:
         """Discover models/personas once per flow session, cached."""
@@ -581,13 +605,18 @@ class KokoroOptionsFlow(config_entries.OptionsFlowWithReload):
             }
             return await self.async_step_persona()
 
-        # Pre-fill from the stored entry
-        data = {**self._entry.data, **(self._entry.options or {})}
-        prefill = {
-            CONF_MODEL: data.get(CONF_MODEL, DEFAULTS[CONF_MODEL]),
-            CONF_LANGUAGE: data.get(CONF_LANGUAGE, DEFAULTS[CONF_LANGUAGE]),
-            CONF_SEX: data.get(CONF_SEX, DEFAULTS[CONF_SEX]),
-        }
+        # Pre-fill from the in-session filters if we're back here via the
+        # persona step's "Change Voice Accent / Sex", otherwise from the
+        # stored entry.
+        if self._filters:
+            prefill = self._filters
+        else:
+            data = {**self._entry.data, **(self._entry.options or {})}
+            prefill = {
+                CONF_MODEL: data.get(CONF_MODEL, DEFAULTS[CONF_MODEL]),
+                CONF_LANGUAGE: data.get(CONF_LANGUAGE, DEFAULTS[CONF_LANGUAGE]),
+                CONF_SEX: data.get(CONF_SEX, DEFAULTS[CONF_SEX]),
+            }
         return self.async_show_form(
             step_id="init", data_schema=_filters_schema(models, prefill)
         )
@@ -599,6 +628,15 @@ class KokoroOptionsFlow(config_entries.OptionsFlowWithReload):
         selected_sex = self._filters.get(CONF_SEX, DEFAULTS[CONF_SEX])
 
         if user_input is not None:
+            if user_input.pop(CONF_CHANGE_FILTERS, False):
+                # Keep whatever speed/format/sample_rate the user already set;
+                # the persona itself is dropped, since it may not match
+                # whatever accent/sex they pick next.
+                self._persona_prefill = {
+                    k: v for k, v in user_input.items() if k != CONF_PERSONA
+                }
+                return await self.async_step_init()
+
             # Convert sample_rate to int
             if CONF_SAMPLE_RATE in user_input and isinstance(user_input[CONF_SAMPLE_RATE], str):
                 try:
@@ -642,6 +680,10 @@ class KokoroOptionsFlow(config_entries.OptionsFlowWithReload):
         elif stored_persona:
             # Unmapped/custom (e.g. a blended voice) - always offer it back.
             prefill[CONF_PERSONA] = stored_persona
+
+        # Overlay any in-session edits from a "Change Voice Accent / Sex"
+        # round trip - these are fresher than what's stored on the entry.
+        prefill.update(self._persona_prefill)
 
         return self.async_show_form(
             step_id="persona",
