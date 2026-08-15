@@ -134,10 +134,11 @@ When adding new voices:
 ### B3. Config Flow
 
 - **Step 1 (`user`)**: User enters `base_url` and optional `api_key`. Validates URL format.
-- **Step 2 (`details`)**: Dynamic discovery of models and personas from the server. User selects model, language filter, sex filter, persona, speed, format, sample rate.
-- **Options flow**: Same schema as details step, allows reconfiguration without removing the entry.
+- **Step 2 (`filters`)**: Dynamic discovery of models and personas from the server. User selects model, language filter, sex filter.
+- **Step 3 (`persona`)**: Persona list pre-filtered by step 2's language/sex; user selects persona, speed, format, sample rate.
+- **Options flow**: Same two steps as setup (`init` = filters, `persona` = persona/audio settings), allows reconfiguration without removing the entry.
 - **Unique ID**: SHA-256 hash of the base URL (first 12 chars) – prevents duplicate entries for the same server.
-- **Filter interaction**: Language and sex selectors dynamically filter the persona dropdown. Changing a filter re-renders the form without submitting.
+- **Filter interaction**: Language and sex live in a dedicated step *before* Persona, specifically because HA config-flow forms are not reactive between fields within one step — a dropdown change only takes effect on submit. Splitting into two steps makes "Next" (apply filter) and "Submit" (save) distinct actions instead of overloading one button with both meanings. Do not collapse this back into a single step without also reintroducing a "was this a filter change or a final submit" heuristic — that exact heuristic caused three rounds of bugs (#9, and two follow-up fixes) before the flow was split.
 - **YAML import**: `async_step_import` supports YAML migration.
 - **Rules**:
   - Never store sensitive API keys in HA state – use `entry.data` which is encrypted at rest.

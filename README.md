@@ -186,11 +186,15 @@ The same syntax works for the per-call `persona` option (see [Per-call option ov
    - **API Key**: Optional authentication key (leave as `not-needed` if not required)
    - The integration will test the connection before proceeding — if it fails, you'll see a specific error message
 
-3. **Voice & Model Selection**:
+3. **Filter Voices** — choose a model and narrow the list before you see it:
    - **Model**: Automatically discovered from `/v1/models` endpoint (defaults to "kokoro")
    - **Language Filter**: Filter personas by language (All Languages, American English, British English, etc.)
    - **Sex Filter**: Filter personas by sex (All, Female, Male)
-   - **Voice/Persona**: Select from filtered list of available personas
+   - Click `Next` — this is a separate step because Home Assistant's setup forms don't
+     live-filter as you change a dropdown; submitting is what applies the filter.
+
+4. **Select Persona** — pick from the list filtered by the previous step:
+   - **Voice/Persona**: Select from the filtered list of available personas
    - **Speed**: Playback speed (0.25x to 4.0x, default: 1.0)
    - **Format**: Audio format (mp3, wav, opus, flac, pcm)
    - **Sample Rate**: Audio sample rate (22050, 24000, 44100 Hz)
@@ -255,10 +259,15 @@ Streaming is automatic — there is nothing to configure. Two things worth knowi
 
 ### Voice/persona not changing after options update
 
-Options changes take effect immediately without a restart. If the voice doesn't change, try:
+Options changes take effect immediately without a restart. `Configure` is a two-step
+form — a "Filter Voices" step (Model/Voice Accent/Sex) followed by a "Select Persona"
+step. Changing Voice Accent or Sex only takes effect once you click `Next` on that
+first step; the Persona list on the second step is filtered accordingly. If the voice
+doesn't change:
 1. Go to `Settings` → `Devices & Services` → `Kokoro TTS` → `Configure`
-2. Change the persona and click `Submit`
-3. The TTS entity reloads automatically with the new settings
+2. On "Filter Voices", change the accent/sex as needed and click `Next`
+3. On "Select Persona", pick the new persona and click `Submit`
+4. The TTS entity reloads automatically with the new settings
 
 ### Per-call option overrides
 
