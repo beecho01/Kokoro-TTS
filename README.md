@@ -52,6 +52,7 @@
 - 🔊 Convert text to speech using Kokoro FastAPI  
 - ⚡ Low-latency responses for near real-time playback  
 - 🎙️ Voice selection with per-call overrides  
+- 🎛️ Voice blending — combine multiple personas (equal or weighted) into a custom voice  
 - 🔧 Configurable server URL and parameters  
 - 🏠 Works with any Home Assistant `media_player` entity  
 - ✅ Connection test during setup — validates server reachability before configuring  
@@ -163,6 +164,17 @@ The integration can be configured through Home Assistant's UI with automatic dis
 | Brazilian Portuguese 🇧🇷 | Female | Dora   | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/pf_dora.mp3) | pf_dora |
 | Brazilian Portuguese 🇧🇷 | Male   | Alex   | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/pm_alex.mp3) | pm_alex |
 | Brazilian Portuguese 🇧🇷 | Male   | Santa  | [▶ Play](https://beecho01.github.io/Kokoro-TTS/docs/audio/pm_santa.mp3) | pm_santa |
+
+### 🎛️ Voice Blending
+
+Kokoro FastAPI supports blending multiple voices into a single custom voice. Instead of picking a persona from the dropdown during setup or options configuration, type a custom value into the **Persona** field:
+
+| Syntax | Result |
+|--------|--------|
+| `af_bella+af_sky` | Equal blend of Bella and Sky |
+| `af_bella(2)+af_sky(1)` | Weighted blend — 67% Bella, 33% Sky |
+
+The same syntax works for the per-call `persona` option (see [Per-call option overrides](#per-call-option-overrides)). Blending works best between voices of the same language, since the `lang_code` sent to the API is derived from the first voice's prefix (or from the `language` you've configured).
 
 ### Setup Steps
 

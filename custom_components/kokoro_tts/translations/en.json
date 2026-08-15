@@ -11,7 +11,7 @@
       },
       "details": {
         "title": "Kokoro TTS Configuration",
-        "description": "Configure your TTS settings. Use the Voice Accent and Sex filters to narrow down the persona list, then select a persona.",
+        "description": "Configure your TTS settings. Use the Voice Accent and Sex filters to narrow down the persona list, then select a persona. Tip: to blend voices, type a custom value such as `af_bella+af_sky` (equal blend) or `af_bella(2)+af_sky(1)` (weighted blend) instead of picking one from the list.",
         "data": {
           "model": "Model",
           "language": "Voice Accent",
@@ -51,7 +51,7 @@
     "step": {
       "init": {
         "title": "Kokoro TTS Options",
-        "description": "Adjust default settings. Use the Voice Accent and Sex filters to narrow down the persona list, then select a persona.",
+        "description": "Adjust default settings. Use the Voice Accent and Sex filters to narrow down the persona list, then select a persona. Tip: to blend voices, type a custom value such as `af_bella+af_sky` (equal blend) or `af_bella(2)+af_sky(1)` (weighted blend) instead of picking one from the list.",
         "data": {
           "model": "Model",
           "language": "Voice Accent",
