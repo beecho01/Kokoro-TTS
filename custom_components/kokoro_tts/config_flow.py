@@ -514,8 +514,13 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 # Options Flow
 # ---------------------------------------------------------------------------
 
-class KokoroOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for Kokoro TTS."""
+class KokoroOptionsFlow(config_entries.OptionsFlowWithReload):
+    """Handle options flow for Kokoro TTS.
+
+    Subclassing OptionsFlowWithReload makes Home Assistant reload the config
+    entry whenever the options change, so the TTS entity is recreated with the
+    new persona, speed, format and sample rate without a restart.
+    """
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
