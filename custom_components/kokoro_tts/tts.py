@@ -22,12 +22,15 @@ from .const import (
     CONF_SPEED,
     DEFAULT_API_KEY,
     DEFAULT_FORMAT,
+    DEFAULT_HA_LANGUAGE,
     DEFAULT_MODEL,
     DEFAULT_SAMPLE_RATE,
     DEFAULT_SPEED,
     DEFAULT_VOLUME_MULTIPLIER,
     DOMAIN,
     LANGUAGE_CODE_MAP,
+    LANGUAGE_HA_CODE_MAP,
+    SUPPORTED_LANGUAGES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -101,9 +104,13 @@ class KokoroTTSEntity(TextToSpeechEntity):
         self._sample_rate = sample_rate
         self._language = language
 
-        # Required TTS entity attributes
-        self._attr_default_language = "en"
-        self._attr_supported_languages = ["en"]
+        # Required TTS entity attributes.
+        # Advertise every language Kokoro can speak: Home Assistant hides the
+        # entity from any pipeline whose language is not listed here.
+        self._attr_supported_languages = SUPPORTED_LANGUAGES
+        self._attr_default_language = LANGUAGE_HA_CODE_MAP.get(
+            language or "", DEFAULT_HA_LANGUAGE
+        )
         self._attr_supported_options = SUPPORTED_OPTIONS
 
     @staticmethod
