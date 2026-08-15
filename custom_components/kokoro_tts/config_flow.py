@@ -349,6 +349,7 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._base_info: dict[str, Any] = {}
         self._discovered: dict[str, list[str]] = {}
+        self._last_filters: tuple[str, str] | None = None
 
     @staticmethod
     @callback
@@ -407,14 +408,24 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             personas = self._discovered["personas"]
 
         if user_input is not None:
-            # Check if this is a filter change (language or sex changed, no persona selected)
+            # A filter change must force a re-render even if Persona still
+            # holds a previously-selected value - otherwise a submit right
+            # after changing Language/Sex silently finalizes with the old
+            # persona instead of showing the newly filtered list.
+            current_filters = (
+                user_input.get(CONF_LANGUAGE, DEFAULTS[CONF_LANGUAGE]),
+                user_input.get(CONF_SEX, DEFAULTS[CONF_SEX]),
+            )
+            filters_changed = current_filters != self._last_filters
+
             has_persona = bool(
                 user_input.get(CONF_PERSONA)
                 and str(user_input.get(CONF_PERSONA)).strip()
             )
 
-            if not has_persona:
+            if filters_changed or not has_persona:
                 # Re-render with updated filters
+                self._last_filters = current_filters
                 schema = _details_schema(models, personas, user_input)
                 return self.async_show_form(step_id="details", data_schema=schema)
 
@@ -449,6 +460,7 @@ class KokoroConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title = f"Kokoro TTS ({hostname})"
             return self.async_create_entry(title=title, data=data)
 
+        self._last_filters = (DEFAULTS[CONF_LANGUAGE], DEFAULTS[CONF_SEX])
         return self.async_show_form(
             step_id="details", data_schema=_details_schema(models, personas, user_input)
         )
@@ -525,18 +537,30 @@ class KokoroOptionsFlow(config_entries.OptionsFlowWithReload):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self._entry = config_entry
+        self._last_filters: tuple[str, str] | None = None
 
     async def async_step_init(self, user_input: dict | None = None):
         """Handle options step with dynamic discovery."""
         if user_input is not None:
-            # Check if this is a filter change (no persona selected)
+            # A filter change must force a re-render even if Persona still
+            # holds the previously-configured value (it always does here,
+            # since Options pre-fills it from the stored entry) - otherwise
+            # submitting right after changing Language/Sex silently saves
+            # with the old persona instead of showing the newly filtered list.
+            current_filters = (
+                user_input.get(CONF_LANGUAGE, DEFAULTS[CONF_LANGUAGE]),
+                user_input.get(CONF_SEX, DEFAULTS[CONF_SEX]),
+            )
+            filters_changed = current_filters != self._last_filters
+
             has_persona = bool(
                 user_input.get(CONF_PERSONA)
                 and str(user_input.get(CONF_PERSONA)).strip()
             )
 
-            if not has_persona:
+            if filters_changed or not has_persona:
                 # Re-render with updated filters
+                self._last_filters = current_filters
                 data = {**self._entry.data, **(self._entry.options or {})}
                 data.pop(CONF_BASE_URL, None)
                 form_data = {**data, **user_input}
@@ -590,10 +614,12 @@ class KokoroOptionsFlow(config_entries.OptionsFlowWithReload):
         data = {**self._entry.data, **(self._entry.options or {})}
         base_url = data.pop(CONF_BASE_URL, None)
 
+        current_language = data.get(CONF_LANGUAGE, DEFAULTS[CONF_LANGUAGE])
+        current_sex = data.get(CONF_SEX, DEFAULTS[CONF_SEX])
+        self._last_filters = (current_language, current_sex)
+
         # Convert stored technical persona name to display name
         if CONF_PERSONA in data:
-            current_language = data.get(CONF_LANGUAGE, DEFAULTS[CONF_LANGUAGE])
-            current_sex = data.get(CONF_SEX, DEFAULTS[CONF_SEX])
             data[CONF_PERSONA] = get_persona_display_name(
                 data[CONF_PERSONA], current_language, current_sex
             )
