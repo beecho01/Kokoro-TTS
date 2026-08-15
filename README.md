@@ -51,6 +51,7 @@
 
 - 🔊 Convert text to speech using Kokoro FastAPI  
 - ⚡ Low-latency responses for near real-time playback  
+- 🚀 Streaming synthesis — speech starts on the first sentence, while a conversation agent is still writing  
 - 🎙️ Voice selection with per-call overrides  
 - 🎛️ Voice blending — combine multiple personas (equal or weighted) into a custom voice  
 - 🔧 Configurable server URL and parameters  
@@ -221,6 +222,22 @@ data:
 target:
   entity_id: tts.kokoro
 ```
+
+**Streaming (conversation agents)**
+
+When Kokoro is the TTS engine of an Assist pipeline, synthesis starts as soon as the
+conversation agent has finished its **first sentence**, rather than waiting for the
+whole reply. On a multi-sentence answer this hides most of the generation time.
+
+Streaming is automatic — there is nothing to configure. Two things worth knowing:
+
+- Each sentence is synthesised as its own request and the audio is concatenated, so
+  the format must be concatenable. `mp3`, `opus` and `pcm` are; `wav` and `flac`
+  carry a per-file header and are not. If the configured format is not stream-safe,
+  `mp3` is used **for streaming only** — regular `tts.speak` calls keep the format
+  you configured.
+- Non-streaming callers (like the `tts.speak` example above) are unaffected and
+  continue to use the single-request path.
 
 ---
 
