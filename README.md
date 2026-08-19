@@ -227,31 +227,32 @@ target:
   entity_id: tts.kokoro
 ```
 
-**Streaming (conversation agents)**
+**Faster voice assistant replies**
 
-When Kokoro is the TTS engine of an Assist pipeline, synthesis starts as soon as the
-conversation agent has finished its **first sentence**, rather than waiting for the
-whole reply. On a multi-sentence answer this hides most of the generation time.
+When you talk to a voice assistant using Kokoro, it starts speaking the reply almost
+immediately instead of waiting for the AI to finish writing its whole answer — the
+longer the reply, the more this saves. It works automatically; there's nothing to
+turn on, and nothing to configure.
 
-This is automatic and works with every format — **you don't need to change anything**.
-The only effect of your configured `format` is which audio format streaming uses:
+<details>
+<summary>Technical details (only relevant if you're troubleshooting audio format issues)</summary>
 
-| Your configured `format` | What streaming actually sends |
-|---------------------------|-------------------------------|
-| `mp3`, `opus`, `pcm`      | Your configured format, unchanged |
-| `wav`, `flac`             | `mp3` (for streaming only — see why below) |
+<br>
 
-Why: each sentence is synthesised as a separate request and the resulting audio
-chunks are concatenated one after another. `mp3`, `opus` and `pcm` support that —
-you can play concatenated chunks as one continuous stream. `wav` and `flac` can't:
-each chunk carries its own file header, so gluing several together produces a
-broken file. Kokoro detects this automatically and substitutes `mp3` *only* for the
-streaming request — it doesn't change your saved configuration.
+This applies to Assist pipeline conversations specifically — Kokoro begins
+synthesising as soon as the conversation agent finishes its first sentence, rather
+than waiting for the complete reply, and streams each sentence's audio as it's
+ready. Direct `tts.speak` calls (like the example above) always use the single-request
+path and are unaffected.
 
-If you want streaming responses in the exact format you configured, set `format` to
-`mp3`, `opus`, or `pcm`. If you're on `wav` or `flac`, streaming will use `mp3`
-regardless, while everything else (non-streaming calls, like the `tts.speak` example
-above) keeps using your configured format untouched.
+Each sentence is synthesised as its own request and the audio is joined end to end,
+so the format has to support that. `mp3`, `opus` and `pcm` do. `wav` and `flac`
+don't — each carries its own file header, so joining several together produces a
+broken file — so if your configured `format` is `wav` or `flac`, streamed replies
+use `mp3` instead just for that request. Your saved setting isn't changed, and
+non-streaming calls still use exactly the format you configured.
+
+</details>
 
 ---
 
