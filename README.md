@@ -234,25 +234,10 @@ immediately instead of waiting for the AI to finish writing its whole answer —
 longer the reply, the more this saves. It works automatically; there's nothing to
 turn on, and nothing to configure.
 
-<details>
-<summary>Technical details (only relevant if you're troubleshooting audio format issues)</summary>
-
-<br>
-
-This applies to Assist pipeline conversations specifically — Kokoro begins
-synthesising as soon as the conversation agent finishes its first sentence, rather
-than waiting for the complete reply, and streams each sentence's audio as it's
-ready. Direct `tts.speak` calls (like the example above) always use the single-request
-path and are unaffected.
-
-Each sentence is synthesised as its own request and the audio is joined end to end,
-so the format has to support that. `mp3`, `opus` and `pcm` do. `wav` and `flac`
-don't — each carries its own file header, so joining several together produces a
-broken file — so if your configured `format` is `wav` or `flac`, streamed replies
-use `mp3` instead just for that request. Your saved setting isn't changed, and
-non-streaming calls still use exactly the format you configured.
-
-</details>
+One thing to know: if your audio format is set to `wav` or `flac`, these don't work
+for streaming voice replies, so Kokoro automatically uses `mp3` for them instead.
+Your saved format setting isn't changed, and everything else keeps using it as
+normal.
 
 ---
 
