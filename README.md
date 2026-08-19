@@ -211,9 +211,8 @@ The same syntax works for the per-call `persona` option (see [Per-call option ov
 
 Kokoro gets used in two different ways, and it's worth knowing which is which:
 
-- **Conversation replies** — you talk to Home Assistant's voice assistant, and an AI
-  conversation agent writes a reply on the spot. Nobody knows the exact words until
-  the AI generates them.
+- **Conversation replies** - you talk to Home Assistant's voice assistant, and an AI
+  conversation agent writes a reply on the spot.
 - **Triggered/predefined text** — a script, automation, or notification calls the
   `tts.speak` action with text you already wrote yourself, e.g. "Front door opened."
 
