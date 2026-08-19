@@ -233,15 +233,25 @@ When Kokoro is the TTS engine of an Assist pipeline, synthesis starts as soon as
 conversation agent has finished its **first sentence**, rather than waiting for the
 whole reply. On a multi-sentence answer this hides most of the generation time.
 
-Streaming is automatic — there is nothing to configure. Two things worth knowing:
+This is automatic and works with every format — **you don't need to change anything**.
+The only effect of your configured `format` is which audio format streaming uses:
 
-- Each sentence is synthesised as its own request and the audio is concatenated, so
-  the format must be concatenable. `mp3`, `opus` and `pcm` are; `wav` and `flac`
-  carry a per-file header and are not. If the configured format is not stream-safe,
-  `mp3` is used **for streaming only** — regular `tts.speak` calls keep the format
-  you configured.
-- Non-streaming callers (like the `tts.speak` example above) are unaffected and
-  continue to use the single-request path.
+| Your configured `format` | What streaming actually sends |
+|---------------------------|-------------------------------|
+| `mp3`, `opus`, `pcm`      | Your configured format, unchanged |
+| `wav`, `flac`             | `mp3` (for streaming only — see why below) |
+
+Why: each sentence is synthesised as a separate request and the resulting audio
+chunks are concatenated one after another. `mp3`, `opus` and `pcm` support that —
+you can play concatenated chunks as one continuous stream. `wav` and `flac` can't:
+each chunk carries its own file header, so gluing several together produces a
+broken file. Kokoro detects this automatically and substitutes `mp3` *only* for the
+streaming request — it doesn't change your saved configuration.
+
+If you want streaming responses in the exact format you configured, set `format` to
+`mp3`, `opus`, or `pcm`. If you're on `wav` or `flac`, streaming will use `mp3`
+regardless, while everything else (non-streaming calls, like the `tts.speak` example
+above) keeps using your configured format untouched.
 
 ---
 
