@@ -216,11 +216,6 @@ Kokoro gets used in two different ways, and it's worth knowing which is which:
 - **Triggered/predefined text** — a script, automation, or notification calls the
   `tts.speak` action with text you already wrote yourself, e.g. "Front door opened."
 
-**Voice Assistant** (conversation replies)
-
-> [!NOTE]
-> Work in Progress
-
 **Triggered action** (predefined text)
 
 ```
