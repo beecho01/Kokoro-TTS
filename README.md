@@ -229,18 +229,16 @@ target:
   entity_id: tts.kokoro
 ```
 
-**Faster voice assistant replies**
+**Conversation Agent**
 
 For conversation replies specifically, Kokoro starts speaking almost immediately
-instead of waiting for the AI to finish writing its whole answer — the longer the
-reply, the more this saves. It works automatically; there's nothing to turn on, and
-nothing to configure. Triggered/predefined text is unaffected either way, since the
-whole message is already known upfront.
+instead of waiting for the AI to finish writing its whole answer - the longer the
+reply, the more time this saves. It works automatically and there's nothing to turn on, and
+nothing to configure.
 
-One thing to know: if your audio format is set to `wav` or `flac`, these don't work
-for streaming voice replies, so Kokoro automatically uses `mp3` for them instead.
-Your saved format setting isn't changed, and everything else (including all
-triggered/predefined text) keeps using it as normal.
+One thing to know, however, if your audio format is set to `wav` or `flac` during the setup process, 
+these don't work for streaming voice replies due to how they are generated, so Kokoro automatically uses `mp3` for them instead.
+This means, that your setup will work exactly as you want for triggered/predefined text, but the conversation agent will automatically switch to use `mp3` in this specific case.
 
 ---
 
