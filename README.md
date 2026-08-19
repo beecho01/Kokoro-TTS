@@ -209,12 +209,20 @@ The same syntax works for the per-call `persona` option (see [Per-call option ov
 
 ## ▶️ Usage
 
-**Voice Assistant**
+Kokoro gets used in two different ways, and it's worth knowing which is which:
+
+- **Conversation replies** — you talk to Home Assistant's voice assistant, and an AI
+  conversation agent writes a reply on the spot. Nobody knows the exact words until
+  the AI generates them.
+- **Triggered/predefined text** — a script, automation, or notification calls the
+  `tts.speak` action with text you already wrote yourself, e.g. "Front door opened."
+
+**Voice Assistant** (conversation replies)
 
 > [!NOTE]
 > Work in Progress
 
-**Triggered action**
+**Triggered action** (predefined text)
 
 ```
 action: tts.speak
@@ -229,15 +237,16 @@ target:
 
 **Faster voice assistant replies**
 
-When you talk to a voice assistant using Kokoro, it starts speaking the reply almost
-immediately instead of waiting for the AI to finish writing its whole answer — the
-longer the reply, the more this saves. It works automatically; there's nothing to
-turn on, and nothing to configure.
+For conversation replies specifically, Kokoro starts speaking almost immediately
+instead of waiting for the AI to finish writing its whole answer — the longer the
+reply, the more this saves. It works automatically; there's nothing to turn on, and
+nothing to configure. Triggered/predefined text is unaffected either way, since the
+whole message is already known upfront.
 
 One thing to know: if your audio format is set to `wav` or `flac`, these don't work
 for streaming voice replies, so Kokoro automatically uses `mp3` for them instead.
-Your saved format setting isn't changed, and everything else keeps using it as
-normal.
+Your saved format setting isn't changed, and everything else (including all
+triggered/predefined text) keeps using it as normal.
 
 ---
 
