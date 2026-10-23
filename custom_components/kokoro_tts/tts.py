@@ -97,6 +97,7 @@ async def async_setup_entry(
 
     entity = KokoroTTSEntity(
         name=name,
+        unique_id=config_entry.entry_id,
         base_url=base_url,
         api_key=api_key,
         model=model,
@@ -115,6 +116,7 @@ class KokoroTTSEntity(TextToSpeechEntity):
     def __init__(
         self,
         name: str,
+        unique_id: str,
         base_url: str,
         api_key: str,
         model: str,
@@ -127,7 +129,7 @@ class KokoroTTSEntity(TextToSpeechEntity):
         """Initialize the TTS entity."""
         super().__init__()
         self._attr_name = name
-        self._attr_unique_id = f"kokoro_tts_{name}"
+        self._attr_unique_id = unique_id
         self._base_url = base_url
         self._api_key = api_key
         self._model = model
